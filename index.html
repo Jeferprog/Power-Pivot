@@ -1,0 +1,2821 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Pivot Pro - Liberações</title>
+
+  <!-- Google Fonts: Roboto -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Bibliotecas para Tabela Dinâmica (jQuery + PivotTable.js) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.js"></script>
+
+  <!-- XLSX para processar Excel (com suporte a estilos) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+  <!-- jsPDF & AutoTable para exportação em PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- html2canvas para exportação em JPEG -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    :root {
+      --primary-green: #005c46;
+      --accent-orange: #f58220;
+      --bg-body: #f8f9fa;
+      --bg-card: #ffffff;
+      --text-dark: #212529;
+      --text-gray: #6c757d;
+      --border-gray: #dee2e6;
+      --success-green: #28a745;
+      --danger-red: #dc3545;
+      --info-blue: #0d6efd;
+      --border-radius: 8px;
+    }
+
+    body {
+      background-color: var(--bg-body);
+      font-family: 'Roboto', sans-serif;
+      color: var(--text-dark);
+      line-height: 1.6;
+    }
+
+    h1,
+    h2,
+    h3 {
+      color: var(--primary-green);
+      font-weight: 700;
+    }
+
+    .text-gray {
+      color: var(--text-gray);
+    }
+
+    /* Tabela Pivot Estilizada */
+    .pvtUi {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .pvtAxisContainer,
+    .pvtVals {
+      background: #f1f3f5 !important;
+      border: 1px solid var(--border-gray) !important;
+      padding: 12px !important;
+      border-radius: var(--border-radius) !important;
+    }
+
+    .pvtAttr {
+      background: white !important;
+      border: 1px solid var(--border-gray) !important;
+      padding: 6px 12px !important;
+      border-radius: 4px !important;
+      margin: 3px !important;
+      font-size: 13px !important;
+      font-weight: 500;
+      color: var(--text-dark);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    table.pvtTable {
+      width: auto;
+      min-width: 100%;
+      font-size: 13px;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--border-gray);
+      white-space: nowrap;
+    }
+
+    /* Cabeçalho Verde Institucional */
+    table.pvtTable thead tr th {
+      background-color: var(--primary-green) !important;
+      color: white !important;
+      padding: 8px 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    table.pvtTable tbody tr th {
+      background-color: #ffffff !important;
+      border: 1px solid var(--border-gray);
+      padding: 6px 12px;
+      font-weight: 500;
+      color: var(--text-dark);
+    }
+
+    /* Linhas Zebradas */
+    table.pvtTable tbody tr:nth-child(even) td {
+      background-color: #fcfcfc;
+    }
+
+    table.pvtTable tbody tr td {
+      border: 1px solid var(--border-gray);
+      padding: 6px 12px;
+      text-align: right;
+      background: white;
+    }
+
+    table.pvtTable tbody tr:hover td {
+      background-color: #f1f3f5 !important;
+    }
+
+    /* Fixar Coluna Agência */
+    table.pvtTable .pvtRowLabel {
+      position: sticky;
+      left: 0;
+      z-index: 50;
+      border-right: 2px solid var(--primary-green) !important;
+    }
+
+    /* Fixar o Canto Superior Esquerdo */
+    table.pvtTable .pvtAxisLabel,
+    table.pvtTable .pvtCorner {
+      position: sticky;
+      left: 0;
+      top: 0;
+      z-index: 150;
+      background-color: #e2e8f0 !important;
+    }
+
+    /* Botões */
+    .btn-primary {
+      background-color: var(--accent-orange);
+      color: white;
+      font-weight: 600;
+      padding: 10px 24px;
+      border-radius: var(--border-radius);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      background-color: #e6761b;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--border-gray);
+      color: var(--text-gray);
+      padding: 10px 24px;
+      border-radius: var(--border-radius);
+      font-weight: 500;
+    }
+
+    .btn-secondary:hover {
+      background-color: #f1f3f5;
+    }
+
+    /* Cards */
+    .card-custom {
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      border-left: 4px solid var(--accent-orange);
+      padding: 24px;
+    }
+
+    .card-success {
+      border-left-color: var(--primary-green);
+    }
+
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(33, 37, 41, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+
+    /* Estilização dos filtros */
+    .pvtFilterBox {
+      z-index: 2000;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--border-gray);
+      padding: 15px;
+      background: white;
+    }
+
+    .pvtCheckContainer {
+      max-height: 250px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+
+    .pvtSearch {
+      border-radius: 6px !important;
+      border: 1px solid var(--border-gray) !important;
+      padding: 6px 10px !important;
+      width: 100% !important;
+    }
+
+    .pvtFilterBox button {
+      margin-top: 10px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .pvtFilterBox button:hover {
+      background: #e2e8f0;
+    }
+
+    .pvtFilterBox input[type='checkbox'] {
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
+    /* Ocultar elementos da interface padrão do PivotTable.js para o modo "Read Only" */
+    .pvtAxisContainer,
+    .pvtVals {
+      display: none !important;
+    }
+
+    /* Mostrar apenas o botão de filtro da Modalidade (se houver) */
+    .pvtFilterBox {
+      display: block;
+    }
+
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.9);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Tabs */
+    .tab-btn {
+      padding: 12px 24px;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-gray);
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      color: var(--primary-green);
+      border-bottom-color: var(--primary-green);
+      background-color: #f0fdf4;
+    }
+
+    /* Modal Gerentes */
+    .modal-gerente {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Cursor pointer para agências clicáveis */
+    .pvtRowLabel {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      color: var(--primary-green) !important;
+    }
+
+    .pvtRowLabel:hover {
+      background-color: #f0fdf4 !important;
+      color: var(--accent-orange) !important;
+    }
+  </style>
+</head>
+
+<body class="p-4 md:p-8">
+
+  <div id="loading" class="loading-overlay">
+    <div class="bg-white p-8 rounded-xl shadow-2xl text-center max-w-xs w-full border-l-8 border-[#f58220]">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#005c46] border-t-transparent">
+      </div>
+      <p id="loadingText" class="mt-4 text-[#212529] font-bold">Processando dados...</p>
+      <p class="text-xs text-[#6c757d] mt-2">Por favor, aguarde a conclusão.</p>
+    </div>
+  </div>
+
+  <div class="max-w-[1250px] mx-auto space-y-8">
+    <!-- Header Institucional -->
+    <header
+      class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white p-8 rounded-xl shadow-sm border-b border-gray-100">
+      <div class="flex items-center gap-5">
+        <div class="bg-[#005c46] p-4 rounded-xl text-white shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+            <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+            <path d="M8 13h2" />
+            <path d="M14 13h2" />
+            <path d="M8 17h2" />
+            <path d="M14 17h2" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-3">
+            <h1 class="text-3xl font-bold tracking-tight">Controle Liberações de Crédito</h1>
+            <span
+              class="bg-[#f58220] text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Cresol
+              Cooperar</span>
+          </div>
+          <p class="text-sm italic text-[#6c757d] mt-1">Última atualização: <span id="lastUpdate">--/--/----</span></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="relative" id="exportContainer" style="display: none;">
+          <button id="exportBtn" class="btn-primary flex items-center gap-2 shadow-lg shadow-orange-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Exportar Relatório
+          </button>
+          <div id="exportDropdown"
+            class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 z-[2000] py-2">
+            <button id="exportExcelBtn"
+              class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <path d="M8 13h2" />
+                <path d="M14 13h2" />
+                <path d="M8 17h2" />
+                <path d="M14 17h2" />
+              </svg>
+              Excel
+            </button>
+            <button id="exportPdfBtn"
+              class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              PDF
+            </button>
+            <button id="exportJpegBtn"
+              class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              JPEG
+            </button>
+          </div>
+        </div>
+        <button id="resetBtn" class="btn-secondary">
+          Reiniciar
+        </button>
+      </div>
+    </header>
+
+    <!-- Navegação por Abas -->
+    <div id="tabsNav" class="hidden flex border-b border-gray-200 mb-6">
+      <button id="tabPivot" class="tab-btn active flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2" />
+          <path d="M3 9h18" />
+          <path d="M9 3v18" />
+        </svg>
+        Tabela Dinâmica
+      </button>
+      <button id="tabRankings" class="tab-btn flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18" />
+          <path d="m19 9-5 5-4-4-3 3" />
+        </svg>
+        Dashboard de Rankings
+      </button>
+      <button id="tabManagers" class="tab-btn flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        Desempenho por Gerente
+      </button>
+      <button id="tabDetails" class="tab-btn flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        Detalhamento de Operações
+      </button>
+    </div>
+
+    <!-- Stepper / Status -->
+    <div id="stepper" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div id="agenciaStatusCard" class="card-custom card-success">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-[#6c757d] uppercase tracking-widest mb-1">Base de Agências</p>
+            <h3 id="agenciaStatusText" class="text-xl font-bold">Aguardando importação...</h3>
+          </div>
+          <div id="agenciaIcon" class="text-[#dee2e6]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </div>
+        </div>
+        <div class="mt-4 flex flex-col gap-2">
+          <div class="flex gap-2">
+            <label class="btn-secondary text-xs cursor-pointer py-2 px-4">
+              <input type="file" id="agenciasInput" accept=".xlsx, .xls" class="hidden">
+              Atualizar Base
+            </label>
+            <button id="clearAgenciasBtn" class="text-xs text-red-500 hover:underline hidden">Limpar Memória</button>
+          </div>
+          <p class="text-[10px] text-gray-400 italic mt-1">
+            Campos esperados: <strong>Conta</strong>, <strong>Nome Agência</strong> e <strong>Gerente de
+              Contas</strong>.
+          </p>
+        </div>
+      </div>
+
+      <div id="liberacaoCard" class="card-custom opacity-50 transition-opacity duration-500">
+        <p class="text-xs font-bold text-[#6c757d] uppercase tracking-widest mb-1">Liberações</p>
+        <h3 class="text-xl font-bold mb-4">Arquivo de Operações</h3>
+        <label id="liberacaoLabel"
+          class="btn-primary text-xs cursor-not-allowed opacity-50 inline-block pointer-events-none">
+          <input type="file" id="liberacoesInput" accept=".xlsx, .xls" class="hidden" multiple>
+          Importar Liberações (Múltiplos)
+        </label>
+        <p class="text-[10px] text-gray-400 italic mt-2">
+          Selecione um ou mais arquivos. Aba: <strong>emprestimosLiberadosPeriodo</strong>.<br>
+          Colunas: <strong>Modalidade (B)</strong>, <strong>Data Liberada (C)</strong>, <strong>Alçada (E)</strong>,
+          <strong>Conta (F)</strong>, <strong>Nome (H)</strong>, <strong>Contrato (M)</strong>, <strong>Vencimento
+            (N)</strong>, <strong>Juros (P)</strong> e <strong>Valor Liberado (Z)</strong>.
+        </p>
+      </div>
+    </div>
+
+    <!-- Pivot Table Wrapper -->
+    <div id="pivotWrapper" class="hidden bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+
+      <!-- Painel de Filtro Customizado -->
+      <div class="mb-6 pb-6 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-bold text-[#005c46]">Visualização de Dados</h3>
+          <p class="text-sm text-gray-500">Filtre as operações pela modalidade desejada.</p>
+        </div>
+        <div class="relative">
+          <button id="customFilterBtn" class="btn-secondary flex items-center gap-2 bg-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            Filtrar Modalidade
+          </button>
+
+          <!-- Dropdown Customizado de Filtro -->
+          <div id="customFilterDropdown"
+            class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-[2000] p-4">
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="font-bold text-sm text-gray-700">Selecione as Modalidades</h4>
+              <div class="flex gap-2">
+                <button id="selectAllModalities" class="text-xs text-blue-600 hover:underline">Todas</button>
+                <button id="clearAllModalities" class="text-xs text-gray-500 hover:underline">Nenhuma</button>
+              </div>
+            </div>
+            <input type="text" id="modalitySearch" placeholder="Buscar modalidade..."
+              class="w-full text-sm border border-gray-300 rounded-md px-3 py-2 mb-3 focus:outline-none focus:ring-1 focus:ring-green-500">
+            <div id="modalityList" class="max-h-60 overflow-y-auto space-y-2 text-sm">
+              <!-- Checkboxes serão injetados aqui -->
+            </div>
+            <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+              <button id="applyFilterBtn" class="btn-primary !py-1.5 !px-4 text-sm">Aplicar Filtro</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pivotContainer" class="overflow-x-auto pb-4">
+        <div id="output"></div>
+      </div>
+    </div>
+
+    <!-- Dashboard de Rankings -->
+    <div id="rankingsContainer" class="hidden space-y-8">
+      <!-- Filtro de Data Global para Rankings -->
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-bold text-[#005c46]">Filtros do Dashboard</h3>
+            <p class="text-sm text-gray-500">Selecione o período para atualizar as classificações.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              <button id="rankingsModalityFilterBtn" class="btn-secondary flex items-center gap-2 bg-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                </svg>
+                Filtrar Modalidade (<span id="rankingsSelectedModalitiesCount">Todas</span>)
+              </button>
+              <div id="rankingsModalityFilterDropdown"
+                class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-[2000] p-4">
+                <div class="flex justify-between items-center mb-3">
+                  <h4 class="font-bold text-sm text-gray-700">Selecione as Modalidades</h4>
+                  <div class="flex gap-2">
+                    <button id="rankingsSelectAllModalities"
+                      class="text-xs text-blue-600 hover:underline">Todas</button>
+                    <button id="rankingsClearAllModalities"
+                      class="text-xs text-gray-500 hover:underline">Nenhuma</button>
+                  </div>
+                </div>
+                <input type="text" id="rankingsModalitySearch" placeholder="Buscar modalidade..."
+                  class="w-full text-sm border border-gray-300 rounded-md px-3 py-2 mb-3 focus:outline-none focus:ring-1 focus:ring-green-500">
+                <div id="rankingsModalityList" class="max-h-60 overflow-y-auto space-y-2 text-sm">
+                  <!-- Checkboxes serão injetados aqui -->
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                  <button id="rankingsApplyModalityFilterBtn" class="btn-primary !py-1.5 !px-4 text-sm">Aplicar</button>
+                </div>
+              </div>
+            </div>
+            <div class="relative">
+              <button id="dateFilterBtn" class="btn-secondary flex items-center gap-2 bg-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Filtrar Datas (<span id="selectedDatesCount">Todas</span>)
+              </button>
+              <div id="dateFilterDropdown"
+                class="hidden absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-[2000] p-4">
+                <div class="flex justify-between items-center mb-3">
+                  <h4 class="font-bold text-sm text-gray-700">Datas Disponíveis</h4>
+                  <div class="flex gap-2">
+                    <button id="selectAllDates" class="text-xs text-blue-600 hover:underline">Todas</button>
+                    <button id="clearAllDates" class="text-xs text-gray-500 hover:underline">Limpar</button>
+                  </div>
+                </div>
+                <div id="dateList" class="max-h-60 overflow-y-auto space-y-1 text-sm">
+                  <!-- Injetado via JS -->
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                  <button id="applyDateFilterBtn" class="btn-primary !py-1.5 !px-4 text-sm">Aplicar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid de Rankings -->
+      <div class="grid grid-cols-1 gap-8">
+        <!-- Ranking de Agências -->
+        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+          <div class="flex items-center gap-3 mb-6 border-b pb-4">
+            <div class="bg-green-100 p-2 rounded-lg text-green-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800">Classificação de Agências (Maior p/ Menor)</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-gray-50 text-gray-600 border-b">
+                <tr>
+                  <th class="p-3 font-bold w-16">Pos.</th>
+                  <th class="p-3 font-bold">Agência</th>
+                  <th class="p-3 font-bold text-right">Valor Liberado</th>
+                  <th class="p-3 font-bold text-right">Taxa Média (%)</th>
+                  <th class="p-3 font-bold text-right">Qtd. Operações</th>
+                </tr>
+              </thead>
+              <tbody id="agencyRankingBody" class="divide-y divide-gray-100">
+                <!-- Injetado via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Gerentes Top 10 e 50 Piores -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Top 10 Gerentes -->
+          <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 border-t-4 border-green-500">
+            <div class="flex items-center gap-3 mb-6 border-b pb-4">
+              <div class="bg-green-100 p-2 rounded-lg text-green-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                  <path d="M4 22h16" />
+                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                </svg>
+              </div>
+              <h3 class="text-xl font-bold text-gray-800">Top 10 Gerentes (Maior Liberação)</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-green-50 text-green-800 border-b">
+                  <tr>
+                    <th class="p-3 font-bold w-16 text-center">#</th>
+                    <th class="p-3 font-bold">Gerente</th>
+                    <th class="p-3 font-bold text-right">Valor Liberado</th>
+                    <th class="p-3 font-bold text-right">Taxa (%)</th>
+                  </tr>
+                </thead>
+                <tbody id="topGerentesBody" class="divide-y divide-gray-100">
+                  <!-- Injetado via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 50 Piores Gerentes -->
+          <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 border-t-4 border-red-500">
+            <div class="flex items-center gap-3 mb-6 border-b pb-4">
+              <div class="bg-red-100 p-2 rounded-lg text-red-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10 10 2 2" />
+                  <path d="m2 10 8-8" />
+                  <path d="m22 22-8-8" />
+                  <path d="m14 22 8-8" />
+                  <path d="M2 22 10 14" />
+                  <path d="m10 22-8-8" />
+                  <path d="m22 2-8 8" />
+                  <path d="m14 2 8 8" />
+                </svg>
+              </div>
+              <h3 id="bottomManagersTitle" class="text-xl font-bold text-gray-800">10 Gerentes (Menor Liberação)</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-red-50 text-red-800 border-b">
+                  <tr>
+                    <th class="p-3 font-bold w-16 text-center">#</th>
+                    <th class="p-3 font-bold">Gerente</th>
+                    <th class="p-3 font-bold text-right">Valor Liberado</th>
+                    <th class="p-3 font-bold text-right">Taxa (%)</th>
+                  </tr>
+                </thead>
+                <tbody id="bottomGerentesBody" class="divide-y divide-gray-100">
+                  <!-- Injetado via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desempenho por Gerente -->
+    <div id="managerPerformanceContainer" class="hidden space-y-8">
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-bold text-[#005c46]">Desempenho Individual de Gerentes</h3>
+            <p class="text-sm text-gray-500">Acompanhamento de todos os gerentes da base.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              <button id="mgrModalityFilterBtn" class="btn-secondary flex items-center gap-2 bg-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                </svg>
+                Filtrar Modalidade (<span id="mgrSelectedModalitiesCount">Todas</span>)
+              </button>
+              <div id="mgrModalityFilterDropdown"
+                class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-[2000] p-4">
+                <div class="flex justify-between items-center mb-3">
+                  <h4 class="font-bold text-sm text-gray-700">Selecione as Modalidades</h4>
+                  <div class="flex gap-2">
+                    <button id="mgrSelectAllModalities" class="text-xs text-blue-600 hover:underline">Todas</button>
+                    <button id="mgrClearAllModalities" class="text-xs text-gray-500 hover:underline">Nenhuma</button>
+                  </div>
+                </div>
+                <input type="text" id="mgrModalitySearch" placeholder="Buscar modalidade..."
+                  class="w-full text-sm border border-gray-300 rounded-md px-3 py-2 mb-3 focus:outline-none focus:ring-1 focus:ring-green-500">
+                <div id="mgrModalityList" class="max-h-60 overflow-y-auto space-y-2 text-sm">
+                  <!-- Checkboxes serão injetados aqui -->
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                  <button id="mgrApplyModalityFilterBtn" class="btn-primary !py-1.5 !px-4 text-sm">Aplicar</button>
+                </div>
+              </div>
+            </div>
+            <div class="relative">
+              <button id="mgrDateFilterBtn" class="btn-secondary flex items-center gap-2 bg-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Filtrar Datas (<span id="mgrSelectedDatesCount">Todas</span>)
+              </button>
+              <div id="mgrDateFilterDropdown"
+                class="hidden absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-[2000] p-4">
+                <div class="flex justify-between items-center mb-3">
+                  <h4 class="font-bold text-sm text-gray-700">Datas Disponíveis</h4>
+                  <div class="flex gap-2">
+                    <button id="mgrSelectAllDates" class="text-xs text-blue-600 hover:underline">Todas</button>
+                    <button id="mgrClearAllDates" class="text-xs text-gray-500 hover:underline">Limpar</button>
+                  </div>
+                </div>
+                <div id="mgrDateList" class="max-h-60 overflow-y-auto space-y-1 text-sm">
+                  <!-- Injetado via JS -->
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                  <button id="mgrApplyDateFilterBtn" class="btn-primary !py-1.5 !px-4 text-sm">Aplicar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-gray-50 text-gray-600 border-b">
+              <tr>
+                <th class="p-3 font-bold">Gerente</th>
+                <th class="p-3 font-bold text-right">Valor Liberado</th>
+                <th class="p-3 font-bold text-right">Taxa Média (%)</th>
+                <th class="p-3 font-bold text-right">Qtd. Operações</th>
+                <th class="p-3 font-bold text-right">Ticket Médio</th>
+              </tr>
+            </thead>
+            <tbody id="managerPerformanceBody" class="divide-y divide-gray-100">
+              <!-- Injetado via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detalhamento de Operações -->
+    <div id="detailsContainer" class="hidden space-y-8">
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 class="text-lg font-bold text-[#005c46]">Detalhamento de Operações</h3>
+            <p class="text-sm text-gray-500">Visualize as operações individuais de todas as modalidades (exceto SEM MOVIMENTO).</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <select id="detailsAgenciaFilter" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500">
+              <option value="Todas">Todas as Agências</option>
+            </select>
+            <select id="detailsGerenteFilter" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500">
+              <option value="Todos">Todos os Gerentes</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto h-[600px] border border-gray-200 rounded-lg">
+          <table class="w-full text-sm text-left relative">
+            <thead class="bg-gray-50 text-gray-600 border-b sticky top-0 z-10">
+              <tr>
+                <th class="p-3 font-bold">Data</th>
+                <th class="p-3 font-bold">Conta</th>
+                <th class="p-3 font-bold">Agência</th>
+                <th class="p-3 font-bold">Gerente de Contas</th>
+                <th class="p-3 font-bold">Número do Contrato</th>
+                <th class="p-3 font-bold text-right">Valor Liberado</th>
+              </tr>
+            </thead>
+            <tbody id="detailsTableBody" class="divide-y divide-gray-100">
+              <!-- Injetado via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unmapped Agencies Container -->
+    <div id="unmappedContainer" class="hidden bg-white rounded-xl shadow-lg border border-red-200 p-6 mt-8">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="bg-red-100 p-2 rounded-full text-red-600">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-red-600">Operações sem Agência Identificada (<span
+              id="unmappedCount">0</span>)</h3>
+          <p class="text-sm text-gray-600">Informe a agência correspondente para as contas abaixo e clique em "Atualizar
+            Tabela".</p>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto border border-gray-200 rounded-lg">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-red-50 text-red-800 border-b border-red-200">
+            <tr>
+              <th class="p-3 font-semibold">Data Liberada</th>
+              <th class="p-3 font-semibold">Conta</th>
+              <th class="p-3 font-semibold">Nome</th>
+              <th class="p-3 font-semibold">Contrato/Parcelas</th>
+              <th class="p-3 font-semibold">Venc. Final</th>
+              <th class="p-3 font-semibold">Agência Correta</th>
+              <th class="p-3 font-semibold">Gerente Responsável</th>
+            </tr>
+          </thead>
+          <tbody id="unmappedBody" class="divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+      <div class="mt-6 flex justify-end">
+        <button id="updateUnmappedBtn"
+          class="btn-primary !bg-red-600 hover:!bg-red-700 border-none text-white flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 21v-5h5" />
+          </svg>
+          Atualizar Tabela
+        </button>
+      </div>
+      <datalist id="agencias-datalist"></datalist>
+      <datalist id="gerentes-datalist"></datalist>
+    </div>
+  </div>
+
+  <!-- Modal de Gerentes -->
+  <div id="modalGerentes" class="modal-gerente">
+    <div class="modal-content p-6">
+      <div class="flex justify-between items-center mb-4 border-b pb-3">
+        <div>
+          <h3 id="modalAgencyName" class="text-xl font-bold text-[#005c46]">Agência</h3>
+          <p class="text-xs text-gray-500 uppercase tracking-wider font-bold">Resumo por Gerente de Contas</p>
+        </div>
+        <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="overflow-hidden border border-gray-100 rounded-lg">
+        <table class="w-full text-sm text-left">
+          <thead class="bg-gray-50 text-gray-600 border-b border-gray-100">
+            <tr>
+              <th class="p-3 font-semibold">Gerente</th>
+              <th class="p-3 font-semibold text-right">Total Liberado</th>
+            </tr>
+          </thead>
+          <tbody id="modalGerentesBody" class="divide-y divide-gray-100">
+            <!-- Injetado via JS -->
+          </tbody>
+          <tfoot class="bg-green-50 font-bold text-[#005c46]">
+            <tr>
+              <td class="p-3">TOTAL AGÊNCIA</td>
+              <td id="modalTotalValue" class="p-3 text-right">R$ 0,00</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="mt-6 flex justify-end">
+        <button onclick="document.getElementById('modalGerentes').style.display='none'"
+          class="btn-secondary !py-2 !px-6">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let agenciasMap = new Map();
+    const agenciasInput = document.getElementById('agenciasInput');
+    const liberacoesInput = document.getElementById('liberacoesInput');
+    const resetBtn = document.getElementById('resetBtn');
+    const exportContainer = document.getElementById('exportContainer');
+    const exportBtn = document.getElementById('exportBtn');
+    const exportDropdown = document.getElementById('exportDropdown');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    const exportJpegBtn = document.getElementById('exportJpegBtn');
+    const clearAgenciasBtn = document.getElementById('clearAgenciasBtn');
+    const updateUnmappedBtn = document.getElementById('updateUnmappedBtn');
+    const loading = document.getElementById('loading');
+    const loadingText = document.getElementById('loadingText');
+
+    // Elementos do Filtro Customizado
+    const customFilterBtn = document.getElementById('customFilterBtn');
+    const customFilterDropdown = document.getElementById('customFilterDropdown');
+    const modalityList = document.getElementById('modalityList');
+    const modalitySearch = document.getElementById('modalitySearch');
+    const selectAllModalities = document.getElementById('selectAllModalities');
+    const clearAllModalities = document.getElementById('clearAllModalities');
+    const applyFilterBtn = document.getElementById('applyFilterBtn');
+    const modalGerentes = document.getElementById('modalGerentes');
+    const modalGerentesBody = document.getElementById('modalGerentesBody');
+    const modalAgencyName = document.getElementById('modalAgencyName');
+    const modalTotalValue = document.getElementById('modalTotalValue');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+
+    // Tabs e Dashboards
+    const tabPivot = document.getElementById('tabPivot');
+    const tabRankings = document.getElementById('tabRankings');
+    const tabManagers = document.getElementById('tabManagers');
+    const tabDetails = document.getElementById('tabDetails');
+    const pivotWrapper = document.getElementById('pivotWrapper');
+    const rankingsContainer = document.getElementById('rankingsContainer');
+    const managerPerformanceContainer = document.getElementById('managerPerformanceContainer');
+    const detailsContainer = document.getElementById('detailsContainer');
+    const tabsNav = document.getElementById('tabsNav');
+
+    // Filtros Rankings
+    const dateFilterBtn = document.getElementById('dateFilterBtn');
+    const dateFilterDropdown = document.getElementById('dateFilterDropdown');
+    const dateList = document.getElementById('dateList');
+    const selectAllDates = document.getElementById('selectAllDates');
+    const clearAllDates = document.getElementById('clearAllDates');
+    const applyDateFilterBtn = document.getElementById('applyDateFilterBtn');
+    const selectedDatesCount = document.getElementById('selectedDatesCount');
+
+    // Filtros Desempenho Gerente
+    const mgrDateFilterBtn = document.getElementById('mgrDateFilterBtn');
+    const mgrDateFilterDropdown = document.getElementById('mgrDateFilterDropdown');
+    const mgrDateList = document.getElementById('mgrDateList');
+    const mgrSelectAllDates = document.getElementById('mgrSelectAllDates');
+    const mgrClearAllDates = document.getElementById('mgrClearAllDates');
+    const mgrApplyDateFilterBtn = document.getElementById('mgrApplyDateFilterBtn');
+    const mgrSelectedDatesCount = document.getElementById('mgrSelectedDatesCount');
+
+    // Corpos das Tabelas de Ranking
+    const agencyRankingBody = document.getElementById('agencyRankingBody');
+    const topGerentesBody = document.getElementById('topGerentesBody');
+    const bottomGerentesBody = document.getElementById('bottomGerentesBody');
+    const managerPerformanceBody = document.getElementById('managerPerformanceBody');
+    const detailsTableBody = document.getElementById('detailsTableBody');
+    const detailsAgenciaFilter = document.getElementById('detailsAgenciaFilter');
+    const detailsGerenteFilter = document.getElementById('detailsGerenteFilter');
+
+    // Variável global para armazenar os dados brutos antes do PROCV
+    window.lastParsedRows = null;
+    window.currentExpandedData = null; // Guarda os dados formatados para o Pivot
+    window.currentEnrichedData = null; // Guarda os dados enriquecidos com a agência e gerente
+    window.selectedModalities = new Set(); // Guarda as modalidades selecionadas no filtro
+    window.selectedDates = new Set(); // Datas selecionadas para o dashboard rankings
+    window.mgrSelectedDates = new Set(); // Datas selecionadas para o dashboard gerentes
+    window.gerentesExcecao = []; // Lista de exceções
+
+    // Inicialização
+    window.onload = () => {
+      document.getElementById('lastUpdate').innerText = new Date().toLocaleDateString('pt-BR');
+      loadAgenciasFromStorage();
+
+      // Carregar lista de exceções do Google Apps Script
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(function (excecoes) {
+          window.gerentesExcecao = excecoes.map(e => e.toUpperCase());
+        }).getGerentesExcecao();
+      }
+    };
+
+    agenciasInput.addEventListener('change', handleAgencias);
+    liberacoesInput.addEventListener('change', handleLiberacoes);
+    resetBtn.addEventListener('click', () => {
+      window.lastParsedRows = null;
+      window.currentExpandedData = null;
+      window.selectedModalities.clear();
+      window.selectedDates.clear();
+      window.mgrSelectedDates.clear();
+      liberacoesInput.value = '';
+      document.getElementById('pivotWrapper').classList.add('hidden');
+      document.getElementById('rankingsContainer').classList.add('hidden');
+      document.getElementById('managerPerformanceContainer').classList.add('hidden');
+      document.getElementById('detailsContainer').classList.add('hidden');
+      document.getElementById('tabsNav').classList.add('hidden');
+      document.getElementById('unmappedContainer').classList.add('hidden');
+      exportContainer.style.display = 'none';
+      document.getElementById('stepper').classList.remove('hidden');
+      $("#output").empty();
+    });
+
+    exportBtn.addEventListener('click', () => {
+      exportDropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!exportBtn.contains(e.target) && !exportDropdown.contains(e.target)) {
+        exportDropdown.classList.add('hidden');
+      }
+    });
+
+    exportExcelBtn.addEventListener('click', () => {
+      exportDropdown.classList.add('hidden');
+      if (tabPivot.classList.contains('active')) exportPivotToExcel();
+      else if (tabRankings.classList.contains('active')) exportRankingsToExcel();
+      else if (tabManagers.classList.contains('active')) exportManagerPerformanceToExcel();
+    });
+
+    exportPdfBtn.addEventListener('click', () => {
+      exportDropdown.classList.add('hidden');
+      if (tabPivot.classList.contains('active')) exportPivotToPdf();
+      else if (tabRankings.classList.contains('active')) exportRankingsToPdf();
+      else if (tabManagers.classList.contains('active')) exportManagerPerformanceToPdf();
+    });
+
+    exportJpegBtn.addEventListener('click', () => {
+      exportDropdown.classList.add('hidden');
+      const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+      if (tabPivot.classList.contains('active')) exportToJpeg('pivotWrapper', `Tabela_Dinamica_${dataAtual}`);
+      else if (tabRankings.classList.contains('active')) exportToJpeg('rankingsContainer', `Dashboard_Rankings_${dataAtual}`);
+      else if (tabManagers.classList.contains('active')) exportToJpeg('managerPerformanceContainer', `Desempenho_Gerentes_${dataAtual}`);
+    });
+
+    clearAgenciasBtn.addEventListener('click', () => {
+      localStorage.removeItem('agencias_base');
+      agenciasMap.clear();
+      agenciasInput.value = '';
+
+      const text = document.getElementById('agenciaStatusText');
+      const icon = document.getElementById('agenciaIcon');
+      const libCard = document.getElementById('liberacaoCard');
+      const libLabel = document.getElementById('liberacaoLabel');
+
+      text.innerText = 'Aguardando importação...';
+      icon.classList.remove('text-[#005c46]');
+      icon.classList.add('text-[#dee2e6]');
+      clearAgenciasBtn.classList.add('hidden');
+
+      libCard.classList.add('opacity-50');
+      libLabel.classList.add('cursor-not-allowed', 'opacity-50', 'pointer-events-none');
+
+      resetBtn.click();
+    });
+    updateUnmappedBtn.addEventListener('click', handleUpdateUnmapped);
+    closeModalBtn.addEventListener('click', () => modalGerentes.style.display = 'none');
+    window.addEventListener('click', (e) => {
+      if (e.target === modalGerentes) modalGerentes.style.display = 'none';
+    });
+
+    // Eventos de Abas
+    tabPivot.addEventListener('click', () => {
+      tabPivot.classList.add('active');
+      tabRankings.classList.remove('active');
+      tabManagers.classList.remove('active');
+      tabDetails.classList.remove('active');
+      pivotWrapper.classList.remove('hidden');
+      rankingsContainer.classList.add('hidden');
+      managerPerformanceContainer.classList.add('hidden');
+      detailsContainer.classList.add('hidden');
+    });
+
+    tabRankings.addEventListener('click', () => {
+      tabRankings.classList.add('active');
+      tabPivot.classList.remove('active');
+      tabManagers.classList.remove('active');
+      tabDetails.classList.remove('active');
+      rankingsContainer.classList.remove('hidden');
+      pivotWrapper.classList.add('hidden');
+      managerPerformanceContainer.classList.add('hidden');
+      detailsContainer.classList.add('hidden');
+      updateRankings();
+    });
+
+    tabManagers.addEventListener('click', () => {
+      tabManagers.classList.add('active');
+      tabPivot.classList.remove('active');
+      tabRankings.classList.remove('active');
+      tabDetails.classList.remove('active');
+      managerPerformanceContainer.classList.remove('hidden');
+      pivotWrapper.classList.add('hidden');
+      rankingsContainer.classList.add('hidden');
+      detailsContainer.classList.add('hidden');
+      updateManagerPerformance();
+    });
+
+    tabDetails.addEventListener('click', () => {
+      tabDetails.classList.add('active');
+      tabPivot.classList.remove('active');
+      tabRankings.classList.remove('active');
+      tabManagers.classList.remove('active');
+      detailsContainer.classList.remove('hidden');
+      pivotWrapper.classList.add('hidden');
+      rankingsContainer.classList.add('hidden');
+      managerPerformanceContainer.classList.add('hidden');
+      updateDetailsTable();
+    });
+
+    // Eventos do Filtro de Data Rankings
+    dateFilterBtn.addEventListener('click', () => dateFilterDropdown.classList.toggle('hidden'));
+
+    document.addEventListener('click', (e) => {
+      if (!dateFilterBtn.contains(e.target) && !dateFilterDropdown.contains(e.target)) {
+        dateFilterDropdown.classList.add('hidden');
+      }
+    });
+
+    selectAllDates.addEventListener('click', () => {
+      dateList.querySelectorAll('input').forEach(i => i.checked = true);
+    });
+
+    clearAllDates.addEventListener('click', () => {
+      dateList.querySelectorAll('input').forEach(i => i.checked = false);
+    });
+
+    applyDateFilterBtn.addEventListener('click', () => {
+      window.selectedDates.clear();
+      dateList.querySelectorAll('input:checked').forEach(i => window.selectedDates.add(i.value));
+      dateFilterDropdown.classList.add('hidden');
+      updateRankings();
+    });
+
+    // Eventos do Filtro de Data Gerentes
+    mgrDateFilterBtn.addEventListener('click', () => mgrDateFilterDropdown.classList.toggle('hidden'));
+
+    document.addEventListener('click', (e) => {
+      if (!mgrDateFilterBtn.contains(e.target) && !mgrDateFilterDropdown.contains(e.target)) {
+        mgrDateFilterDropdown.classList.add('hidden');
+      }
+    });
+
+    mgrSelectAllDates.addEventListener('click', () => {
+      mgrDateList.querySelectorAll('input').forEach(i => i.checked = true);
+    });
+
+    mgrClearAllDates.addEventListener('click', () => {
+      mgrDateList.querySelectorAll('input').forEach(i => i.checked = false);
+    });
+
+    mgrApplyDateFilterBtn.addEventListener('click', () => {
+      window.mgrSelectedDates.clear();
+      mgrDateList.querySelectorAll('input:checked').forEach(i => window.mgrSelectedDates.add(i.value));
+      mgrDateFilterDropdown.classList.add('hidden');
+      updateManagerPerformance();
+    });
+
+    detailsAgenciaFilter.addEventListener('change', updateDetailsTable);
+    detailsGerenteFilter.addEventListener('change', updateDetailsTable);
+
+    // Lógica compartilhada para Filtros de Modalidade
+    function setupModalityFilter(btnId, dropdownId, searchId, listId, selectAllId, clearAllId, applyId) {
+      const btn = document.getElementById(btnId);
+      const dropdown = document.getElementById(dropdownId);
+      const search = document.getElementById(searchId);
+      const list = document.getElementById(listId);
+      const selectAll = document.getElementById(selectAllId);
+      const clearAll = document.getElementById(clearAllId);
+      const apply = document.getElementById(applyId);
+
+      if (!btn) return;
+
+      btn.addEventListener('click', () => dropdown.classList.toggle('hidden'));
+
+      document.addEventListener('click', (e) => {
+        if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+          dropdown.classList.add('hidden');
+        }
+      });
+
+      search.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const labels = list.querySelectorAll('label');
+        labels.forEach(label => {
+          const text = label.textContent.toLowerCase();
+          label.style.display = text.includes(term) ? 'flex' : 'none';
+        });
+      });
+
+      selectAll.addEventListener('click', () => {
+        list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          if (cb.parentElement.style.display !== 'none') cb.checked = true;
+        });
+      });
+
+      clearAll.addEventListener('click', () => {
+        list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          if (cb.parentElement.style.display !== 'none') cb.checked = false;
+        });
+      });
+
+      apply.addEventListener('click', () => {
+        dropdown.classList.add('hidden');
+
+        window.selectedModalities.clear();
+        list.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+          window.selectedModalities.add(cb.value);
+        });
+
+        // Sync other lists
+        const allLists = [
+          document.getElementById('modalityList'),
+          document.getElementById('rankingsModalityList'),
+          document.getElementById('mgrModalityList')
+        ];
+        allLists.forEach(l => {
+          if (l && l !== list) {
+            l.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+              cb.checked = window.selectedModalities.has(cb.value);
+            });
+          }
+        });
+
+        updateModalityFilterCount();
+
+        // Re-renderizar com o filtro aplicado
+        if (window.currentExpandedData) {
+          renderPivotTableOnly(window.currentExpandedData);
+          updateRankings();
+          updateManagerPerformance();
+        }
+      });
+    }
+
+    setupModalityFilter('customFilterBtn', 'customFilterDropdown', 'modalitySearch', 'modalityList', 'selectAllModalities', 'clearAllModalities', 'applyFilterBtn');
+    setupModalityFilter('rankingsModalityFilterBtn', 'rankingsModalityFilterDropdown', 'rankingsModalitySearch', 'rankingsModalityList', 'rankingsSelectAllModalities', 'rankingsClearAllModalities', 'rankingsApplyModalityFilterBtn');
+    setupModalityFilter('mgrModalityFilterBtn', 'mgrModalityFilterDropdown', 'mgrModalitySearch', 'mgrModalityList', 'mgrSelectAllModalities', 'mgrClearAllModalities', 'mgrApplyModalityFilterBtn');
+
+    function updateModalityFilterCount() {
+      const list = document.getElementById('modalityList');
+      if (!list) return;
+      const total = list.querySelectorAll('input').length;
+      const selected = window.selectedModalities.size;
+      const text = selected === total ? "Todas" : `${selected} selecionadas`;
+
+      const rCount = document.getElementById('rankingsSelectedModalitiesCount');
+      if (rCount) rCount.innerText = text;
+
+      const mCount = document.getElementById('mgrSelectedModalitiesCount');
+      if (mCount) mCount.innerText = text;
+    }
+
+    function populateCustomFilter(data) {
+      const uniqueModalities = new Set();
+      data.forEach(r => {
+        if (r["Modalidade"] && r["Modalidade"] !== "SEM MOVIMENTO") {
+          uniqueModalities.add(r["Modalidade"]);
+        }
+      });
+
+      const sortedModalities = Array.from(uniqueModalities).sort();
+
+      // Se for a primeira vez, seleciona tudo
+      if (window.selectedModalities.size === 0) {
+        sortedModalities.forEach(m => window.selectedModalities.add(m));
+      }
+
+      const html = sortedModalities.map(mod => `
+        <label class="flex items-start gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+          <input type="checkbox" value="${mod}" class="mt-1 rounded border-gray-300 text-green-600 focus:ring-green-500" 
+            ${window.selectedModalities.has(mod) ? 'checked' : ''}>
+          <span class="text-gray-700 leading-tight">${mod}</span>
+        </label>
+      `).join('');
+
+      const mList = document.getElementById('modalityList');
+      if (mList) mList.innerHTML = html;
+
+      const rList = document.getElementById('rankingsModalityList');
+      if (rList) rList.innerHTML = html;
+
+      const mgrList = document.getElementById('mgrModalityList');
+      if (mgrList) mgrList.innerHTML = html;
+
+      updateModalityFilterCount();
+    }
+
+    function handleUpdateUnmapped() {
+      const inputs = document.querySelectorAll('.unmapped-agencia-input');
+      const mgrInputs = document.querySelectorAll('.unmapped-gerente-input');
+      let updated = false;
+
+      // Criar um mapa para busca case-insensitive das agências existentes
+      const existingAgencies = Array.from(new Set(Array.from(agenciasMap.values()).map(v => v.agencia)));
+      const agencyLookup = new Map(existingAgencies.map(a => [a.toLowerCase(), a]));
+
+      // Criar um mapa para busca case-insensitive dos gerentes existentes
+      const existingManagers = Array.from(new Set(Array.from(agenciasMap.values()).map(v => v.gerente)));
+      const managerLookup = new Map(existingManagers.map(m => [m.toLowerCase(), m]));
+
+      inputs.forEach((input, index) => {
+        let val = input.value.trim();
+        const conta = input.getAttribute('data-conta');
+        const mgrInput = mgrInputs[index];
+        let mgrVal = mgrInput ? mgrInput.value.trim() : "NÃO INFORMADO";
+
+        if ((val || mgrVal) && conta) {
+          // Se o usuário digitou com diferença de maiúsculas/minúsculas, corrige para o formato exato da base
+          const lowerVal = val.toLowerCase();
+          if (agencyLookup.has(lowerVal)) {
+            val = agencyLookup.get(lowerVal);
+          }
+
+          const lowerMgrVal = mgrVal.toLowerCase();
+          if (managerLookup.has(lowerMgrVal)) {
+            mgrVal = managerLookup.get(lowerMgrVal);
+          }
+
+          // Se não informou agência, mantém o que estava ou "NÃO ENCONTRADA"
+          const currentMapping = agenciasMap.get(normalizarConta(conta));
+          const finalAgencia = val || (currentMapping ? currentMapping.agencia : "NÃO ENCONTRADA");
+          const finalGerente = mgrVal || (currentMapping ? currentMapping.gerente : "NÃO INFORMADO");
+
+          agenciasMap.set(normalizarConta(conta), { agencia: finalAgencia, gerente: finalGerente });
+          updated = true;
+        }
+      });
+
+      if (updated) {
+        localStorage.setItem('agencias_base', JSON.stringify(Array.from(agenciasMap.entries())));
+        updateAgenciaUI(true);
+        reprocessData();
+      } else {
+        alert("Preencha pelo menos uma agência ou gerente para atualizar.");
+      }
+    }
+
+    function enrichData(dataRows, mapAgencias) {
+      const processedAgencies = new Set();
+      let finalData = dataRows.map(r => {
+        const contaNorm = normalizarConta(r["Conta"]);
+        const mapping = mapAgencias.get(contaNorm);
+
+        let agencia = "NÃO ENCONTRADA";
+        let gerente = "NÃO INFORMADO";
+
+        if (mapping) {
+          if (typeof mapping === 'string') {
+            agencia = mapping;
+          } else {
+            agencia = mapping.agencia || "NÃO ENCONTRADA";
+            gerente = mapping.gerente || "NÃO INFORMADO";
+          }
+        }
+
+        if (typeof agencia === 'object') agencia = "Desconhecida";
+        if (typeof gerente === 'object') gerente = "NÃO INFORMADO";
+
+        if (agencia !== "NÃO ENCONTRADA") processedAgencies.add(agencia);
+        return { ...r, "Agência": agencia, "Gerente": gerente };
+      });
+
+      const validDates = Array.from(new Set(dataRows.map(r => r["Data Liberada"]).filter(d => d))).sort();
+      const dummyDate = validDates.length > 0 ? validDates[0] : "";
+
+      // Adicionar registros "zero" para agências que não tiveram movimento
+      mapAgencias.forEach((val) => {
+        const agencia = val.agencia;
+        if (!processedAgencies.has(agencia)) {
+          finalData.push({
+            "Agência": agencia,
+            "Gerente": val.gerente,
+            "Modalidade": "SEM MOVIMENTO",
+            "Valor Liberado": 0,
+            "Data Liberada": dummyDate,
+            "Nome": "-"
+          });
+        }
+      });
+      return finalData;
+    }
+
+    function reprocessData() {
+      if (!window.lastParsedRows) return;
+      loading.style.display = 'flex';
+      loadingText.innerText = "Atualizando Tabela...";
+
+      setTimeout(() => {
+        try {
+          const finalData = enrichData(window.lastParsedRows, agenciasMap);
+          renderPivot(finalData);
+        } catch (err) {
+          console.error(err);
+          alert("Erro ao atualizar: " + err.message);
+        } finally {
+          loading.style.display = 'none';
+        }
+      }, 100);
+    }
+
+    function exportPivotToExcel() {
+      const table = document.querySelector(".pvtTable");
+      if (!table) {
+        alert("Gere a tabela primeiro para exportar.");
+        return;
+      }
+
+      const wb = XLSX.utils.table_to_book(table, { sheet: "Pivot Data", raw: true });
+      const ws = wb.Sheets["Pivot Data"];
+
+      const range = XLSX.utils.decode_range(ws['!ref']);
+
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!ws[cellRef]) continue;
+
+          let cellValue = String(ws[cellRef].v);
+          let isCurrency = cellValue.includes("R$");
+          let isOp = cellValue.includes("op.");
+
+          let style = {
+            font: { name: "Arial", sz: 10, color: { rgb: "FF212529" } },
+            alignment: { vertical: "center", horizontal: "right" },
+            border: {
+              top: { style: "thin", color: { rgb: "FFDEE2E6" } },
+              bottom: { style: "thin", color: { rgb: "FFDEE2E6" } },
+              left: { style: "thin", color: { rgb: "FFDEE2E6" } },
+              right: { style: "thin", color: { rgb: "FFDEE2E6" } }
+            }
+          };
+
+          // Zebrado nas linhas de dados
+          if (R > 1 && R < range.e.r) {
+            if (R % 2 === 0) {
+              style.fill = { fgColor: { rgb: "FFF8F9FA" } };
+            } else {
+              style.fill = { fgColor: { rgb: "FFFFFFFF" } };
+            }
+          }
+
+          if (isCurrency && !isOp) {
+            let numStr = cellValue.replace("R$", "").replace(/\./g, "").replace(",", ".").trim();
+            let num = parseFloat(numStr);
+            if (!isNaN(num)) {
+              ws[cellRef].t = 'n';
+              ws[cellRef].v = num;
+              style.numFmt = '"R$" #,##0.00';
+            }
+          } else if (!isNaN(parseFloat(cellValue)) && !isOp && !cellValue.includes("/")) {
+            ws[cellRef].t = 'n';
+            ws[cellRef].v = parseFloat(cellValue);
+          } else if (isOp) {
+            let numStr = cellValue.replace("op.", "").trim();
+            let num = parseInt(numStr, 10);
+            if (!isNaN(num)) {
+              ws[cellRef].t = 'n';
+              ws[cellRef].v = num;
+              style.numFmt = '0 "op."';
+            }
+          }
+
+          // Cabeçalhos
+          if (R === 0 || R === 1) {
+            style.fill = { fgColor: { rgb: "FF005C46" } };
+            style.font.color = { rgb: "FFFFFFFF" };
+            style.font.bold = true;
+            style.alignment.horizontal = "center";
+          }
+          // Coluna de Agências
+          else if (C === 0) {
+            style.fill = { fgColor: { rgb: "FFE2E8F0" } };
+            style.font.color = { rgb: "FF005C46" };
+            style.font.bold = true;
+            style.alignment.horizontal = "left";
+          }
+
+          // Linha de Total Geral
+          if (R === range.e.r) {
+            style.fill = { fgColor: { rgb: "FFD1D5DB" } };
+            style.font.bold = true;
+            style.font.color = { rgb: "FF111827" };
+          }
+
+          // Colunas de Total Geral (as duas últimas)
+          if (C >= range.e.c - 1 && R > 1) {
+            style.font.bold = true;
+            if (R < range.e.r) {
+              style.fill = { fgColor: { rgb: "FFF3F4F6" } };
+            }
+          }
+
+          ws[cellRef].s = style;
+        }
+      }
+
+      // Congelar painéis a partir da célula C4 (2 colunas, 3 linhas)
+      ws['!views'] = [{
+        state: 'frozen',
+        xSplit: 2, // Congela as colunas A e B
+        ySplit: 3  // Congela as linhas 1, 2 e 3
+      }];
+
+      const colWidths = [{ wch: 35 }];
+      for (let i = 1; i <= range.e.c; i++) {
+        colWidths.push({ wch: 18 });
+      }
+      ws['!cols'] = colWidths;
+
+      const dateStr = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+      XLSX.writeFile(wb, `Relatorio_Liberações_${dateStr}.xlsx`);
+    }
+
+    function exportRankingsToExcel() {
+      const wb = XLSX.utils.book_new();
+      const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+
+      const agencyTable = document.querySelector("#agencyRankingBody").closest("table");
+      if (agencyTable) {
+        const wsAgency = XLSX.utils.table_to_sheet(agencyTable);
+        XLSX.utils.book_append_sheet(wb, wsAgency, "Agências");
+      }
+
+      const topTable = document.querySelector("#topGerentesBody").closest("table");
+      if (topTable) {
+        const wsTop = XLSX.utils.table_to_sheet(topTable);
+        XLSX.utils.book_append_sheet(wb, wsTop, "Top Gerentes");
+      }
+
+      const bottomTable = document.querySelector("#bottomGerentesBody").closest("table");
+      if (bottomTable) {
+        const wsBottom = XLSX.utils.table_to_sheet(bottomTable);
+        XLSX.utils.book_append_sheet(wb, wsBottom, "Menores Liberações");
+      }
+
+      XLSX.writeFile(wb, `Dashboard_Rankings_${dataAtual}.xlsx`);
+    }
+
+    function exportPivotToPdf() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('l', 'pt', 'a4');
+
+      doc.setFontSize(16);
+      doc.setTextColor(0, 92, 70);
+      doc.text('Tabela Dinâmica', 40, 40);
+
+      const table = document.querySelector(".pvtTable");
+      if (!table) {
+        alert("Gere a tabela primeiro.");
+        return;
+      }
+
+      doc.autoTable({
+        html: table,
+        startY: 60,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [0, 92, 70], textColor: 255 }
+      });
+
+      doc.save('Tabela_Dinamica.pdf');
+    }
+
+    function exportRankingsToPdf() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'pt', 'a4');
+
+      doc.setFontSize(18);
+      doc.setTextColor(0, 92, 70);
+      doc.text('Dashboard de Rankings', 40, 40);
+
+      let currentY = 60;
+
+      doc.setFontSize(14);
+      doc.text('Classificação de Agências', 40, currentY);
+      currentY += 15;
+      const agencyTable = document.querySelector("#agencyRankingBody").closest("table");
+      if (agencyTable) {
+        doc.autoTable({
+          html: agencyTable,
+          startY: currentY,
+          theme: 'grid',
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [0, 92, 70] },
+          columnStyles: {
+            2: { halign: 'right' },
+            3: { halign: 'right' },
+            4: { halign: 'right' }
+          }
+        });
+        currentY = doc.lastAutoTable.finalY + 30;
+      }
+
+      doc.setFontSize(14);
+      doc.text('Top 10 Gerentes', 40, currentY);
+      currentY += 15;
+      const topTable = document.querySelector("#topGerentesBody").closest("table");
+      if (topTable) {
+        doc.autoTable({
+          html: topTable,
+          startY: currentY,
+          theme: 'grid',
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [40, 167, 69] },
+          columnStyles: {
+            2: { halign: 'right' },
+            3: { halign: 'right' }
+          }
+        });
+        currentY = doc.lastAutoTable.finalY + 30;
+      }
+
+      if (currentY > 700) {
+        doc.addPage();
+        currentY = 40;
+      }
+
+      doc.setFontSize(14);
+      doc.text('Gerentes (Menor Liberação)', 40, currentY);
+      currentY += 15;
+      const bottomTable = document.querySelector("#bottomGerentesBody").closest("table");
+      if (bottomTable) {
+        doc.autoTable({
+          html: bottomTable,
+          startY: currentY,
+          theme: 'grid',
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [220, 53, 69] },
+          columnStyles: {
+            2: { halign: 'right' },
+            3: { halign: 'right' }
+          }
+        });
+      }
+
+      doc.save('Dashboard_Rankings.pdf');
+    }
+
+    function exportToJpeg(containerId, filename) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      loading.style.display = 'flex';
+      loadingText.innerText = "Gerando Imagem...";
+
+      setTimeout(() => {
+        html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#f8f9fa' }).then(canvas => {
+          const link = document.createElement('a');
+          link.download = filename + '.jpeg';
+          link.href = canvas.toDataURL('image/jpeg', 0.9);
+          link.click();
+          loading.style.display = 'none';
+        }).catch(err => {
+          console.error(err);
+          alert("Erro ao gerar imagem.");
+          loading.style.display = 'none';
+        });
+      }, 100);
+    }
+
+    function normalizarConta(conta) {
+      if (conta === null || conta === undefined) return null;
+      let c = String(conta).trim();
+      c = c.replace(/[\.\-\s]/g, "");
+      return c.replace(/^0+/, "");
+    }
+
+    function handleAgencias(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      loading.style.display = 'flex';
+      loadingText.innerText = "Mapeando Agências...";
+
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet);
+
+          agenciasMap.clear();
+          rows.forEach(row => {
+            const conta = row["Conta"] || row["CONTA"];
+            const agencia = row["Nome Agência"] || row["NOME AGÊNCIA"] || row["AGENCIA"];
+            const gerente = row["Gerente de Contas"] || row["GERENTE"] || row["GERENTE DE CONTAS"] || "NÃO INFORMADO";
+            if (conta && agencia) {
+              agenciasMap.set(normalizarConta(conta), { agencia, gerente });
+            }
+          });
+
+          if (agenciasMap.size === 0) {
+            alert("Nenhuma agência encontrada. Verifique se as colunas se chamam 'Conta' e 'Nome Agência'.");
+            loading.style.display = 'none';
+            return;
+          }
+
+          // Salvar no LocalStorage
+          localStorage.setItem('agencias_base', JSON.stringify(Array.from(agenciasMap.entries())));
+          updateAgenciaUI(true);
+          alert("Base de agências (" + agenciasMap.size + ") salva com sucesso!");
+
+        } catch (err) {
+          console.error(err);
+          alert("Erro ao ler base de agências: " + err.message);
+        } finally {
+          loading.style.display = 'none';
+        }
+      };
+      reader.onerror = () => {
+        alert("Erro ao ler o arquivo.");
+        loading.style.display = 'none';
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function handleLiberacoes(e) {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      loading.style.display = 'flex';
+      loadingText.innerText = `Processando ${files.length} arquivo(s)...`;
+
+      try {
+        let allParsedRows = [];
+        for (const file of files) {
+          const rows = await parseExcelFile(file);
+          allParsedRows = allParsedRows.concat(rows);
+        }
+
+        window.lastParsedRows = allParsedRows;
+        const processedData = enrichData(allParsedRows, agenciasMap);
+        renderPivot(processedData);
+      } catch (err) {
+        alert(err);
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    function loadAgenciasFromStorage() {
+      const stored = localStorage.getItem('agencias_base');
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          agenciasMap = new Map(data);
+          updateAgenciaUI(true);
+          console.log("✓ Base de agências carregada do LocalStorage");
+        } catch (e) {
+          console.error("Erro ao carregar localStorage", e);
+        }
+      }
+    }
+
+    function updateAgenciaUI(isLoaded) {
+      const card = document.getElementById('agenciaStatusCard');
+      const text = document.getElementById('agenciaStatusText');
+      const icon = document.getElementById('agenciaIcon');
+      const libCard = document.getElementById('liberacaoCard');
+      const libLabel = document.getElementById('liberacaoLabel');
+
+      if (isLoaded) {
+        text.innerText = `${agenciasMap.size} Agências Mapeadas`;
+        icon.classList.remove('text-[#dee2e6]');
+        icon.classList.add('text-[#005c46]');
+        clearAgenciasBtn.classList.remove('hidden');
+
+        libCard.classList.remove('opacity-50');
+        libLabel.classList.remove('cursor-not-allowed', 'opacity-50', 'pointer-events-none');
+      }
+    }
+
+    function renderPivot(data) {
+      if (!data || data.length === 0) {
+        alert("O processamento não retornou nenhum dado válido. Verifique o arquivo de liberações.");
+        loading.style.display = 'none';
+        return;
+      }
+
+      try {
+        renderUnmappedTable(data);
+
+        document.getElementById('stepper').classList.add('hidden');
+        document.getElementById('tabsNav').classList.remove('hidden');
+        document.getElementById('pivotWrapper').classList.remove('hidden');
+        exportContainer.style.display = 'block';
+
+        // Expandir dados para colunas separadas
+        const expandedData = [];
+        data.forEach(r => {
+          const val = parseFloat(r["Valor Liberado"]) || 0;
+          expandedData.push({ ...r, "Métrica": "Soma Valor", "Valor": val });
+          expandedData.push({ ...r, "Métrica": "Qtd Operações", "Valor": val > 0 || r["Modalidade"] !== "SEM MOVIMENTO" ? 1 : 0 });
+        });
+
+        window.currentExpandedData = expandedData;
+
+        // Popula os filtros
+        populateCustomFilter(data);
+        populateDateFilter(data);
+        populateDetailsFilters(data);
+
+        window.currentEnrichedData = data;
+
+        // Renderiza a tabela inicial
+        renderPivotTableOnly(expandedData);
+        updateDetailsTable();
+
+      } catch (err) {
+        console.error("Erro ao renderizar Pivot:", err);
+        alert("Erro ao gerar a tabela: " + err.message);
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    function populateDateFilter(data) {
+      const dates = new Set();
+      data.forEach(r => {
+        if (r["Data Liberada"] && r["Data Liberada"] !== "-") dates.add(r["Data Liberada"]);
+      });
+
+      const sortedDates = Array.from(dates).sort((a, b) => {
+        const [da, ma, ya] = a.split('/').map(Number);
+        const [db, mb, yb] = b.split('/').map(Number);
+        return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+      });
+
+      if (window.selectedDates.size === 0) {
+        sortedDates.forEach(d => window.selectedDates.add(d));
+      }
+      if (window.mgrSelectedDates.size === 0) {
+        sortedDates.forEach(d => window.mgrSelectedDates.add(d));
+      }
+
+      dateList.innerHTML = sortedDates.map(date => `
+        <label class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+          <input type="checkbox" value="${date}" ${window.selectedDates.has(date) ? 'checked' : ''}>
+          <span>${date}</span>
+        </label>
+      `).join('');
+
+      mgrDateList.innerHTML = sortedDates.map(date => `
+        <label class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+          <input type="checkbox" value="${date}" ${window.mgrSelectedDates.has(date) ? 'checked' : ''}>
+          <span>${date}</span>
+        </label>
+      `).join('');
+
+      updateDateFilterCount();
+    }
+
+    function updateDateFilterCount() {
+      const total = dateList.querySelectorAll('input').length;
+      const selected = window.selectedDates.size;
+      selectedDatesCount.innerText = selected === total ? "Todas" : `${selected} selecionadas`;
+
+      const mgrSelected = window.mgrSelectedDates.size;
+      mgrSelectedDatesCount.innerText = mgrSelected === total ? "Todas" : `${mgrSelected} selecionadas`;
+    }
+
+    function updateManagerPerformance() {
+      if (!window.currentExpandedData) return;
+
+      const formatCurrency = (val) => (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const formatPercent = (val) => (val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+
+      // Filtrar dados por data e modalidade
+      const filteredData = window.currentExpandedData.filter(r =>
+        r["Métrica"] === "Soma Valor" &&
+        (window.mgrSelectedDates.has(r["Data Liberada"]) || r["Modalidade"] === "SEM MOVIMENTO") &&
+        (r["Modalidade"] === "SEM MOVIMENTO" || window.selectedModalities.has(r["Modalidade"]))
+      );
+
+      // Obter todos os gerentes únicos da base
+      const allManagers = Array.from(new Set(Array.from(agenciasMap.values()).map(v => v.gerente))).sort();
+
+      const managerStats = new Map();
+      allManagers.forEach(m => managerStats.set(m, { valor: 0, qtd: 0, weightedJuros: 0 }));
+
+      filteredData.forEach(r => {
+        if (r["Modalidade"] === "SEM MOVIMENTO") return;
+        const ger = r["Gerente"] || "NÃO INFORMADO";
+        const val = parseFloat(r["Valor"]) || 0;
+        const taxa = parseFloat(r["Juros A.M. (%)"]) || 0;
+
+        if (!managerStats.has(ger)) managerStats.set(ger, { valor: 0, qtd: 0, weightedJuros: 0 });
+        const stats = managerStats.get(ger);
+        stats.valor += val;
+        stats.qtd += 1;
+        if (val > 0) {
+          stats.weightedJuros += (taxa * val);
+        }
+      });
+
+      const sortedStats = Array.from(managerStats.entries())
+        .sort((a, b) => b[1].valor - a[1].valor)
+        .filter(([ger, stats]) => {
+          if (stats.valor === 0 && window.gerentesExcecao.includes(ger.toUpperCase())) {
+            return false;
+          }
+          return true;
+        });
+
+      managerPerformanceBody.innerHTML = sortedStats.map(([ger, stats]) => {
+        const ticketMedio = stats.qtd > 0 ? stats.valor / stats.qtd : 0;
+        const taxaMedia = stats.valor > 0 ? stats.weightedJuros / stats.valor : 0;
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="p-3 font-medium text-gray-800">${ger}</td>
+            <td class="p-3 text-right font-mono ${stats.valor > 0 ? 'text-green-700 font-bold' : 'text-gray-400'}">${formatCurrency(stats.valor)}</td>
+            <td class="p-3 text-right font-mono ${stats.valor > 0 ? 'text-blue-700' : 'text-gray-400'}">${formatPercent(taxaMedia)}</td>
+            <td class="p-3 text-right ${stats.qtd > 0 ? 'text-gray-800' : 'text-gray-400'}">${stats.qtd} op.</td>
+            <td class="p-3 text-right font-mono text-gray-500">${formatCurrency(ticketMedio)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function updateRankings() {
+      if (!window.currentExpandedData) return;
+
+      const formatCurrency = (val) => (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const formatPercent = (val) => (val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+
+      // Filtrar dados por data e modalidade
+      const filteredData = window.currentExpandedData.filter(r =>
+        r["Métrica"] === "Soma Valor" &&
+        (window.selectedDates.has(r["Data Liberada"]) || r["Modalidade"] === "SEM MOVIMENTO") &&
+        (r["Modalidade"] === "SEM MOVIMENTO" || window.selectedModalities.has(r["Modalidade"]))
+      );
+
+      // 1. Ranking de Agências
+      const agencyMap = new Map();
+
+      // Inicializar com todas as agências conhecidas da base e dos dados atuais
+      const allAgencies = new Set([
+        ...Array.from(agenciasMap.values()).map(v => v.agencia),
+        ...window.currentExpandedData.map(r => r["Agência"])
+      ]);
+      allAgencies.forEach(ag => {
+        if (ag && ag !== "NÃO ENCONTRADA" && ag !== "SEM MOVIMENTO") {
+          agencyMap.set(ag, { valor: 0, qtd: 0, weightedJuros: 0 });
+        }
+      });
+
+      filteredData.forEach(r => {
+        const ag = r["Agência"];
+        // Ignorar registros sem agência ou de "SEM MOVIMENTO" no cálculo do ranking
+        if (ag === "NÃO ENCONTRADA" || ag === "SEM MOVIMENTO") return;
+
+        const val = parseFloat(r["Valor"]) || 0;
+        const qtd = r["Valor"] > 0 ? 1 : 0;
+        const taxa = parseFloat(r["Juros A.M. (%)"]) || 0;
+
+        if (!agencyMap.has(ag)) agencyMap.set(ag, { valor: 0, qtd: 0, weightedJuros: 0 });
+        const entry = agencyMap.get(ag);
+        entry.valor += val;
+        entry.qtd += qtd;
+        if (val > 0) {
+          entry.weightedJuros += (taxa * val);
+        }
+      });
+
+      const sortedAgencies = Array.from(agencyMap.entries()).sort((a, b) => b[1].valor - a[1].valor);
+
+      let totalValor = 0;
+      let totalQtd = 0;
+      let totalWeightedJuros = 0;
+
+      const agencyRows = sortedAgencies.map(([ag, data], i) => {
+        totalValor += data.valor;
+        totalQtd += data.qtd;
+        totalWeightedJuros += data.weightedJuros;
+
+        let rowClass = "bg-yellow-50 hover:bg-yellow-100 text-yellow-900";
+        let posClass = "text-yellow-600";
+
+        if (i < 3) {
+          rowClass = "bg-green-50 hover:bg-green-100 text-green-900";
+          posClass = "text-green-600";
+        } else if (i >= sortedAgencies.length - 3) {
+          rowClass = "bg-red-50 hover:bg-red-100 text-red-900";
+          posClass = "text-red-600";
+        }
+
+        const taxaMedia = data.valor > 0 ? data.weightedJuros / data.valor : 0;
+
+        return `
+        <tr class="${rowClass} transition-colors">
+          <td class="p-3 font-bold ${posClass}">${i + 1}º</td>
+          <td class="p-3 font-medium">${ag}</td>
+          <td class="p-3 text-right font-mono">${formatCurrency(data.valor)}</td>
+          <td class="p-3 text-right font-mono">${formatPercent(taxaMedia)}</td>
+          <td class="p-3 text-right">${data.qtd} op.</td>
+        </tr>
+      `}).join('');
+
+      const totalTaxaGeral = totalValor > 0 ? totalWeightedJuros / totalValor : 0;
+
+      const totalRow = `
+        <tr class="bg-[#005c46] text-white font-bold border-t-2 border-gray-300">
+          <td class="p-3" colspan="2">TOTAL GERAL</td>
+          <td class="p-3 text-right font-mono">${formatCurrency(totalValor)}</td>
+          <td class="p-3 text-right font-mono">${formatPercent(totalTaxaGeral)}</td>
+          <td class="p-3 text-right">${totalQtd} op.</td>
+        </tr>
+      `;
+
+      agencyRankingBody.innerHTML = agencyRows + totalRow;
+
+      // 2. Ranking de Gerentes
+      const managerMap = new Map();
+
+      // Inicializar com todos os gerentes mapeados para garantir que apareçam os com 0
+      const allManagers = Array.from(new Set(Array.from(agenciasMap.values()).map(v => v.gerente))).sort();
+      allManagers.forEach(m => managerMap.set(m, { valor: 0, weightedJuros: 0 }));
+
+      filteredData.forEach(r => {
+        if (r["Modalidade"] === "SEM MOVIMENTO") return;
+        const ger = r["Gerente"] || "NÃO INFORMADO";
+        const val = parseFloat(r["Valor"]) || 0;
+        const taxa = parseFloat(r["Juros A.M. (%)"]) || 0;
+
+        if (!managerMap.has(ger)) managerMap.set(ger, { valor: 0, weightedJuros: 0 });
+        const entry = managerMap.get(ger);
+        entry.valor += val;
+        if (val > 0) {
+          entry.weightedJuros += (taxa * val);
+        }
+      });
+
+      const sortedManagers = Array.from(managerMap.entries())
+        .sort((a, b) => {
+          if (b[1].valor !== a[1].valor) return b[1].valor - a[1].valor;
+          return a[0].localeCompare(b[0]);
+        })
+        .filter(([ger, data]) => {
+          if (data.valor === 0 && window.gerentesExcecao.includes(ger.toUpperCase())) {
+            return false;
+          }
+          return true;
+        });
+
+      // Top 10
+      const top10 = sortedManagers.slice(0, 10);
+      topGerentesBody.innerHTML = top10.map(([ger, data], i) => {
+        const taxaMedia = data.valor > 0 ? data.weightedJuros / data.valor : 0;
+        return `
+          <tr class="hover:bg-green-50">
+            <td class="p-3 text-center font-bold text-green-600">${i + 1}</td>
+            <td class="p-3 font-medium">${ger}</td>
+            <td class="p-3 text-right font-mono text-green-700">${formatCurrency(data.valor)}</td>
+            <td class="p-3 text-right font-mono text-blue-600">${formatPercent(taxaMedia)}</td>
+          </tr>
+        `;
+      }).join('') || '<tr><td colspan="4" class="p-4 text-center text-gray-400 italic">Sem dados</td></tr>';
+
+      // 10 Piores
+      let bottomCount = 10;
+      // Aplica a regra de exceção: gerentes na lista de exceções não aparecem no ranking de piores
+      const bottomCandidates = sortedManagers.filter(([ger, data]) => !window.gerentesExcecao.includes(ger.toUpperCase()));
+      const bottomList = bottomCandidates.slice(-bottomCount).reverse(); // Inverte para mostrar o pior primeiro
+
+      // Atualiza o título dinamicamente
+      const bottomTitle = document.getElementById('bottomManagersTitle');
+      if (bottomTitle) {
+        bottomTitle.innerText = `10 Gerentes (Menor Liberação)`;
+      }
+
+      bottomGerentesBody.innerHTML = bottomList.map(([ger, data], i) => {
+        const taxaMedia = data.valor > 0 ? data.weightedJuros / data.valor : 0;
+        return `
+          <tr class="hover:bg-red-50">
+            <td class="p-3 text-center font-bold text-red-600">${sortedManagers.length - i}</td>
+            <td class="p-3 font-medium">${ger}</td>
+            <td class="p-3 text-right font-mono text-red-700">${formatCurrency(data.valor)}</td>
+            <td class="p-3 text-right font-mono text-blue-600">${formatPercent(taxaMedia)}</td>
+          </tr>
+        `;
+      }).join('') || '<tr><td colspan="4" class="p-4 text-center text-gray-400 italic">Sem dados</td></tr>';
+    }
+
+    function renderPivotTableOnly(expandedData) {
+      // Filtrar os dados com base nas modalidades selecionadas no painel customizado
+      let filteredData = expandedData.filter(r => {
+        if (String(r["Agência"]) === "[object Object]") return false;
+
+        const dataLib = String(r["Data Liberada"] || "");
+        if (r["Modalidade"] !== "SEM MOVIMENTO" && !dataLib.includes("/")) return false;
+
+        // Sempre mantém "SEM MOVIMENTO" para garantir que a agência apareça
+        if (r["Modalidade"] === "SEM MOVIMENTO") return true;
+        return window.selectedModalities.has(r["Modalidade"]);
+      });
+
+      const validDates = Array.from(new Set(expandedData.map(r => r["Data Liberada"]).filter(d => d && d !== "-" && String(d).includes("/")))).sort();
+      const dummyDate = validDates.length > 0 ? validDates[0] : "";
+
+      // Garantir que todas as agências mapeadas apareçam, mesmo se não tiverem dados após o filtro
+      const agenciesPresent = new Set(filteredData.map(r => r["Agência"]));
+      agenciasMap.forEach((val) => {
+        const agenciaNome = val.agencia;
+        if (!agenciesPresent.has(agenciaNome)) {
+          filteredData.push({
+            "Agência": agenciaNome,
+            "Gerente": val.gerente,
+            "Modalidade": "SEM MOVIMENTO",
+            "Data Liberada": dummyDate,
+            "Métrica": "Soma Valor",
+            "Valor": 0
+          });
+          filteredData.push({
+            "Agência": agenciaNome,
+            "Gerente": val.gerente,
+            "Modalidade": "SEM MOVIMENTO",
+            "Data Liberada": dummyDate,
+            "Métrica": "Qtd Operações",
+            "Valor": 0
+          });
+        }
+      });
+
+      const formatCurrency = (val) => (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const formatInt = (val) => Math.floor(val || 0).toString();
+
+      // Usar pivot() em vez de pivotUI() para esconder a interface de arrastar e soltar
+      $("#output").pivot(filteredData, {
+        rows: ["Agência"],
+        cols: ["Data Liberada", "Métrica"],
+        aggregator: function (data, rowKey, colKey) {
+          // ... (mesma lógica anterior)
+          const metricInColumn = colKey && colKey.length > 0 ? colKey[colKey.length - 1] : null;
+          let sumValor = 0;
+          let sumQtd = 0;
+          return {
+            push: function (record) {
+              if (metricInColumn) {
+                if (record.Métrica === metricInColumn) {
+                  if (metricInColumn === "Soma Valor") sumValor += (record.Valor || 0);
+                  if (metricInColumn === "Qtd Operações") sumQtd += (record.Valor || 0);
+                }
+              } else {
+                if (record.Métrica === "Soma Valor") sumValor += (record.Valor || 0);
+                if (record.Métrica === "Qtd Operações") sumQtd += (record.Valor || 0);
+              }
+            },
+            value: function () {
+              if (metricInColumn === "Qtd Operações") return sumQtd;
+              if (metricInColumn === "Soma Valor") return sumValor;
+              return { sumValor, sumQtd };
+            },
+            format: function (x) {
+              if (metricInColumn === "Qtd Operações") return formatInt(x);
+              if (metricInColumn === "Soma Valor") return formatCurrency(x);
+              return `${formatCurrency(x.sumValor)} | ${formatInt(x.sumQtd)} op.`;
+            }
+          };
+        }
+      });
+
+      // Adicionar evento de clique nas agências e dividir a coluna de Totais
+      setTimeout(() => {
+        document.querySelectorAll('.pvtRowLabel').forEach(label => {
+          label.addEventListener('click', function () {
+            const agencyName = this.innerText;
+            showGerenteBreakdown(agencyName, filteredData);
+          });
+        });
+
+        // Dividir a coluna de Totais
+        const table = document.querySelector(".pvtTable");
+        if (!table) return;
+
+        const thead = table.querySelector("thead");
+        if (thead) {
+          const rows = thead.querySelectorAll("tr");
+          if (rows.length >= 2) {
+            const firstRow = rows[0];
+            const secondRow = rows[1];
+
+            const totalTh = firstRow.querySelector(".pvtTotalLabel");
+            if (totalTh) {
+              totalTh.innerText = "Total Geral";
+              totalTh.colSpan = 2;
+              totalTh.rowSpan = 1;
+            }
+
+            const valTh = document.createElement("th");
+            valTh.className = "pvtColLabel";
+            valTh.innerText = "Soma Valor";
+
+            const qtdTh = document.createElement("th");
+            qtdTh.className = "pvtColLabel";
+            qtdTh.innerText = "Qtd Operações";
+
+            secondRow.appendChild(valTh);
+            secondRow.appendChild(qtdTh);
+          }
+        }
+
+        const tbody = table.querySelector("tbody");
+        if (tbody) {
+          tbody.querySelectorAll("tr").forEach(tr => {
+            const totalTd = tr.querySelector(".pvtTotal");
+            if (totalTd) {
+              const textContent = totalTd.innerText;
+              let valText = "R$ 0,00";
+              let qtdText = "0 op.";
+
+              if (textContent.includes(" | ")) {
+                const parts = textContent.split(" | ");
+                valText = parts[0] || "R$ 0,00";
+                qtdText = parts[1] || "0 op.";
+              } else {
+                if (textContent.includes("op.")) {
+                  qtdText = textContent;
+                } else {
+                  valText = textContent;
+                }
+              }
+
+              const valTd = document.createElement("td");
+              valTd.className = "pvtVal rowTotal";
+              valTd.innerText = valText;
+
+              const qtdTd = document.createElement("td");
+              qtdTd.className = "pvtVal rowTotal";
+              qtdTd.innerText = qtdText;
+
+              tr.insertBefore(valTd, totalTd);
+              tr.insertBefore(qtdTd, totalTd);
+              tr.removeChild(totalTd);
+            }
+          });
+        }
+
+        const tfoot = table.querySelector("tfoot");
+        if (tfoot) {
+          const tr = tfoot.querySelector("tr");
+          if (tr) {
+            const grandTotalCells = tr.querySelectorAll(".pvtGrandTotal");
+            if (grandTotalCells.length > 0) {
+              const grandTotalTd = grandTotalCells[grandTotalCells.length - 1];
+              const textContent = grandTotalTd.innerText;
+              let valText = "R$ 0,00";
+              let qtdText = "0 op.";
+
+              if (textContent.includes(" | ")) {
+                const parts = textContent.split(" | ");
+                valText = parts[0] || "R$ 0,00";
+                qtdText = parts[1] || "0 op.";
+              } else {
+                // Se não tiver o separador, tentamos inferir pelo conteúdo
+                if (textContent.includes("op.")) {
+                  qtdText = textContent;
+                } else {
+                  valText = textContent;
+                }
+              }
+
+              const valTd = document.createElement("th");
+              valTd.className = "pvtGrandTotal";
+              valTd.innerText = valText;
+
+              const qtdTd = document.createElement("th");
+              qtdTd.className = "pvtGrandTotal";
+              qtdTd.innerText = qtdText;
+
+              tr.insertBefore(valTd, grandTotalTd);
+              tr.insertBefore(qtdTd, grandTotalTd);
+              tr.removeChild(grandTotalTd);
+            }
+          }
+        }
+      }, 100);
+    }
+
+    function showGerenteBreakdown(agencyName, data) {
+      const formatCurrency = (val) => (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+      // Filtrar dados da agência e agrupar por gerente
+      const agencyData = data.filter(r => r["Agência"] === agencyName && r["Métrica"] === "Soma Valor");
+      const gerenteTotals = new Map();
+      let totalGeral = 0;
+
+      agencyData.forEach(r => {
+        const gerente = r["Gerente"] || "NÃO INFORMADO";
+        const valor = parseFloat(r["Valor"]) || 0;
+        gerenteTotals.set(gerente, (gerenteTotals.get(gerente) || 0) + valor);
+        totalGeral += valor;
+      });
+
+      // Ordenar gerentes por valor (maior para menor)
+      const sortedGerentes = Array.from(gerenteTotals.entries()).sort((a, b) => b[1] - a[1]);
+
+      modalAgencyName.innerText = agencyName;
+      modalTotalValue.innerText = formatCurrency(totalGeral);
+      modalGerentesBody.innerHTML = sortedGerentes.map(([gerente, total]) => `
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="p-3 text-gray-700 font-medium">${gerente}</td>
+          <td class="p-3 text-right font-mono text-gray-800">${formatCurrency(total)}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="2" class="p-4 text-center text-gray-500 italic">Nenhum dado encontrado para esta agência.</td></tr>';
+
+      modalGerentes.style.display = 'flex';
+    }
+
+    function renderUnmappedTable(data) {
+      const ignoredModalities = [
+        "1580 ADIANTAMENTO A DEPOSITANTES - RECURSOS PRÓPRIOS - 2026",
+        "2005 CCB - LIMITE DE CONTA CORRENTE - RECURSOS PRÓPRIOS - 2010"
+      ];
+
+      const unmapped = data.filter(r => {
+        if (r["Agência"] !== "NÃO ENCONTRADA" || r["Modalidade"] === "SEM MOVIMENTO") return false;
+        const mod = String(r["Modalidade"]).trim().toUpperCase();
+        return !ignoredModalities.some(ignored => mod.includes(ignored.toUpperCase()) || ignored.toUpperCase().includes(mod));
+      });
+
+      const container = document.getElementById('unmappedContainer');
+      const tbody = document.getElementById('unmappedBody');
+      const countSpan = document.getElementById('unmappedCount');
+      const datalist = document.getElementById('agencias-datalist');
+
+      if (unmapped.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      countSpan.innerText = unmapped.length;
+      tbody.innerHTML = '';
+
+      // Preencher datalist com agências conhecidas
+      const uniqueAgencias = Array.from(new Set(Array.from(agenciasMap.values()).map(v => v.agencia))).sort();
+      datalist.innerHTML = uniqueAgencias.map(a => `<option value="${a}">`).join('');
+
+      // Preencher datalist com gerentes conhecidos
+      const uniqueGerentes = Array.from(new Set(Array.from(agenciasMap.values()).map(v => v.gerente))).sort();
+      const gerentesDatalist = document.getElementById('gerentes-datalist');
+      gerentesDatalist.innerHTML = uniqueGerentes.map(g => `<option value="${g}">`).join('');
+
+      unmapped.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-gray-50 transition-colors";
+        tr.innerHTML = `
+          <td class="p-3 text-gray-600">${r["Data Liberada"] || '-'}</td>
+          <td class="p-3 font-mono font-medium text-gray-800">${r["Conta"] || '-'}</td>
+          <td class="p-3 text-gray-800">${r["Nome"] || '-'}</td>
+          <td class="p-3 text-gray-600">${r["Contrato/Parcelas"] || '-'}</td>
+          <td class="p-3 text-gray-600">${r["Venc. Final"] || '-'}</td>
+          <td class="p-3">
+            <input type="text" class="unmapped-agencia-input w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" data-conta="${r["Conta"]}" list="agencias-datalist" placeholder="Agência...">
+          </td>
+          <td class="p-3">
+            <input type="text" class="unmapped-gerente-input w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" data-conta="${r["Conta"]}" list="gerentes-datalist" placeholder="Gerente...">
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      container.classList.remove('hidden');
+    }
+
+    async function parseExcelFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = evt => {
+          try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames.find(n => n.toLowerCase().replace(/\s/g, "").includes("emprestimosliberadosperiodo"));
+            if (!sheetName) return reject(`Aba 'emprestimosLiberadosPeriodo' não encontrada no arquivo ${file.name}.`);
+
+            const sheet = workbook.Sheets[sheetName];
+            let rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+
+            for (let i = 1; i < rows.length; i++) { if (!rows[i][1]) rows[i][1] = rows[i - 1][1]; }
+
+            let headerRowIndex = rows.findIndex(r => r[2] && String(r[2]).toLowerCase().includes("data liberada"));
+            if (headerRowIndex === -1) headerRowIndex = 19;
+            rows = rows.slice(headerRowIndex);
+
+            rows = rows.filter(r => {
+              if (!r || !Array.isArray(r)) return false;
+              const rowText = r.join(" ").toLowerCase();
+              return !rowText.includes("registros(s)") &&
+                !rowText.includes("total modalidade") &&
+                r[2] !== null &&
+                r[2] !== undefined &&
+                r[2] !== "";
+            });
+
+            const columnMap = [1, 2, 4, 5, 7, 12, 13, 15, 25];
+            rows = rows.map(r => columnMap.map(i => r[i] ?? null));
+            const headers = ["Modalidade", "Data Liberada", "Alçada", "Conta", "Nome", "Contrato/Parcelas", "Venc. Final", "Juros A.M. (%)", "Valor Liberado"];
+            rows = rows.slice(1);
+
+            let dataRows = rows.map(r => {
+              const obj = {};
+              headers.forEach((h, i) => { obj[h] = r[i]; });
+              return obj;
+            });
+
+            resolve(convertTypes(dataRows));
+          } catch (e) { reject(e.message); }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function exportManagerPerformanceToPdf() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'pt', 'a4');
+
+      // Título
+      doc.setFontSize(18);
+      doc.setTextColor(0, 92, 70); // --primary-green
+      doc.text('Desempenho Individual de Gerentes', 40, 40);
+
+      // Data de geração
+      doc.setFontSize(10);
+      doc.setTextColor(108, 117, 125); // --text-gray
+      const dataAtual = new Date().toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      doc.text(`Gerado em: ${dataAtual}`, 40, 55);
+
+      // Filtros aplicados
+      let filtrosY = 75;
+      doc.setFontSize(10);
+      doc.setTextColor(33, 37, 41); // --text-dark
+
+      const selectedDates = window.mgrSelectedDates.size > 0 ? Array.from(window.mgrSelectedDates).join(', ') : 'Todas';
+      doc.text(`Datas Filtradas: ${selectedDates}`, 40, filtrosY);
+      filtrosY += 15;
+
+      const selectedMods = window.selectedModalities.size > 0 ?
+        (window.selectedModalities.size === document.querySelectorAll('#mgrModalityList input').length ? 'Todas' : `${window.selectedModalities.size} selecionadas`)
+        : 'Nenhuma';
+      doc.text(`Modalidades Filtradas: ${selectedMods}`, 40, filtrosY);
+      filtrosY += 20;
+
+      // Extrair dados da tabela
+      const table = document.getElementById('managerPerformanceBody');
+      const rows = Array.from(table.querySelectorAll('tr'));
+
+      if (rows.length === 0 || (rows.length === 1 && rows[0].innerText.includes('Nenhum dado'))) {
+        doc.text('Nenhum dado disponível para exportação com os filtros atuais.', 40, filtrosY + 20);
+        doc.save('Desempenho_Gerentes.pdf');
+        return;
+      }
+
+      const tableData = rows.map(row => {
+        const cells = Array.from(row.querySelectorAll('td'));
+        return cells.map(cell => cell.innerText);
+      });
+
+      // Configuração da tabela no PDF
+      doc.autoTable({
+        startY: filtrosY,
+        head: [['Gerente', 'Valor Liberado', 'Taxa Média', 'Qtd. Operações', 'Ticket Médio']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [0, 92, 70], // --primary-green
+          textColor: 255,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        columnStyles: {
+          0: { halign: 'left' },
+          1: { halign: 'right' },
+          2: { halign: 'right' },
+          3: { halign: 'right' },
+          4: { halign: 'right' }
+        },
+        styles: {
+          fontSize: 9,
+          cellPadding: 4
+        },
+        alternateRowStyles: {
+          fillColor: [248, 249, 250] // --bg-body
+        }
+      });
+
+      doc.save('Desempenho_Gerentes.pdf');
+    }
+
+    function exportManagerPerformanceToExcel() {
+      const table = document.getElementById('managerPerformanceBody');
+      const rows = Array.from(table.querySelectorAll('tr'));
+
+      if (rows.length === 0 || (rows.length === 1 && rows[0].innerText.includes('Nenhum dado'))) {
+        alert('Nenhum dado disponível para exportação com os filtros atuais.');
+        return;
+      }
+
+      // 1. Criar a planilha
+      const wb = XLSX.utils.book_new();
+      const wsData = [];
+
+      // 2. Adicionar Cabeçalho do Relatório
+      wsData.push(["Relatório: Desempenho Individual de Gerentes"]);
+      const dataAtual = new Date().toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      wsData.push([`Gerado em: ${dataAtual}`]);
+
+      const selectedDates = window.mgrSelectedDates.size > 0 ? Array.from(window.mgrSelectedDates).join(', ') : 'Todas';
+      wsData.push([`Datas Filtradas: ${selectedDates}`]);
+
+      const selectedMods = window.selectedModalities.size > 0 ?
+        (window.selectedModalities.size === document.querySelectorAll('#mgrModalityList input').length ? 'Todas' : `${window.selectedModalities.size} selecionadas`)
+        : 'Nenhuma';
+      wsData.push([`Modalidades Filtradas: ${selectedMods}`]);
+      wsData.push([]); // Linha em branco
+
+      // 3. Adicionar Cabeçalho da Tabela
+      const headers = ['Gerente', 'Valor Liberado', 'Taxa Média (%)', 'Qtd. Operações', 'Ticket Médio'];
+      wsData.push(headers);
+
+      // 4. Extrair e formatar os dados
+      rows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td'));
+        if (cells.length < 5) return; // Skip empty or invalid rows
+
+        const rowData = [];
+
+        // Gerente
+        rowData.push(cells[0].innerText);
+
+        // Valor Liberado (converter para número)
+        let valorStr = cells[1].innerText.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
+        rowData.push(parseFloat(valorStr) || 0);
+
+        // Taxa Média (converter para número)
+        let taxaStr = cells[2].innerText.replace('%', '').replace(/\./g, '').replace(',', '.').trim();
+        rowData.push((parseFloat(taxaStr) || 0) / 100);
+
+        // Qtd. Operações (converter para número)
+        let qtdStr = cells[3].innerText.replace('op.', '').trim();
+        rowData.push(parseInt(qtdStr, 10) || 0);
+
+        // Ticket Médio (converter para número)
+        let ticketStr = cells[4].innerText.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
+        rowData.push(parseFloat(ticketStr) || 0);
+
+        wsData.push(rowData);
+      });
+
+      // 5. Criar a folha de trabalho
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+      // 6. Estilizar a planilha
+      const range = XLSX.utils.decode_range(ws['!ref']);
+
+      // Estilos
+      const headerStyle = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "005C46" } },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: {
+          top: { style: "thin", color: { auto: 1 } },
+          bottom: { style: "thin", color: { auto: 1 } },
+          left: { style: "thin", color: { auto: 1 } },
+          right: { style: "thin", color: { auto: 1 } }
+        }
+      };
+
+      const titleStyle = {
+        font: { bold: true, sz: 14, color: { rgb: "005C46" } }
+      };
+
+      const metaStyle = {
+        font: { italic: true, color: { rgb: "6C757D" } }
+      };
+
+      const dataStyle = {
+        border: {
+          top: { style: "thin", color: { rgb: "DEE2E6" } },
+          bottom: { style: "thin", color: { rgb: "DEE2E6" } },
+          left: { style: "thin", color: { rgb: "DEE2E6" } },
+          right: { style: "thin", color: { rgb: "DEE2E6" } }
+        }
+      };
+
+      const currencyStyle = { ...dataStyle, numFmt: '"R$" #,##0.00' };
+      const numberStyle = { ...dataStyle, numFmt: '#,##0 "op."' };
+      const percentStyle = { ...dataStyle, numFmt: '0.00%' };
+
+      // Aplicar estilos
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = { c: C, r: R };
+          const cellRef = XLSX.utils.encode_cell(cellAddress);
+          if (!ws[cellRef]) continue;
+
+          if (R === 0) {
+            ws[cellRef].s = titleStyle;
+          } else if (R >= 1 && R <= 3) {
+            ws[cellRef].s = metaStyle;
+          } else if (R === 5) {
+            // Cabeçalho da tabela
+            ws[cellRef].s = headerStyle;
+          } else if (R > 5) {
+            // Dados da tabela
+            if (C === 1 || C === 4) { // Valor Liberado e Ticket Médio
+              ws[cellRef].s = currencyStyle;
+              ws[cellRef].t = 'n';
+              ws[cellRef].v = wsData[R][C];
+            } else if (C === 2) { // Taxa Média
+              ws[cellRef].s = percentStyle;
+              ws[cellRef].t = 'n';
+              ws[cellRef].v = wsData[R][C];
+            } else if (C === 3) { // Qtd. Operações
+              ws[cellRef].s = numberStyle;
+              ws[cellRef].t = 'n';
+              ws[cellRef].v = wsData[R][C];
+            } else {
+              ws[cellRef].s = dataStyle;
+            }
+
+            // Zebrado
+            if (R % 2 === 1) {
+              ws[cellRef].s.fill = { fgColor: { rgb: "F8F9FA" } };
+            }
+          }
+        }
+      }
+
+      // Ajustar largura das colunas
+      ws['!cols'] = [
+        { wch: 40 }, // Gerente
+        { wch: 20 }, // Valor Liberado
+        { wch: 15 }, // Taxa Média
+        { wch: 15 }, // Qtd. Operações
+        { wch: 20 }  // Ticket Médio
+      ];
+
+      // Congelar painéis (congelar cabeçalho da tabela)
+      ws['!freeze'] = { xSplit: "A", ySplit: 6, topLeftCell: "A7", activePane: "bottomLeft", state: "frozen" };
+
+      // 7. Adicionar a folha ao livro e exportar
+      XLSX.utils.book_append_sheet(wb, ws, "Desempenho Gerentes");
+      XLSX.writeFile(wb, "Desempenho_Gerentes.xlsx");
+    }
+
+    function convertTypes(dataRows) {
+      const formatDate = d => {
+        if (!d || isNaN(d.getTime())) return null;
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      };
+      const toDate = v => {
+        if (!v) return null;
+        // Se for número serial do Excel
+        if (typeof v === "number") {
+          // O Excel considera 1900 como ano bissexto (um bug histórico), então o dia 60 é 29/02/1900.
+          // O JS usa a época UNIX (01/01/1970).
+          // 25569 é o número de dias entre 30/12/1899 e 01/01/1970.
+          // Multiplicamos por 86400000 (milissegundos em um dia).
+          // Adicionamos o offset do fuso horário para evitar que a data volte um dia.
+          const date = new Date((v - 25569) * 86400000);
+          const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+          return new Date(date.getTime() + userTimezoneOffset);
+        }
+        // Se for string ou outro formato
+        const d = new Date(v);
+        if (isNaN(d)) return null;
+
+        // Adiciona o offset do fuso horário para strings de data (ex: "2024-01-01")
+        const userTimezoneOffset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() + userTimezoneOffset);
+      };
+
+      return dataRows.map(r => {
+        let val = r["Valor Liberado"];
+        if (typeof val === "string") val = parseFloat(val.replace(/\./g, "").replace(",", "."));
+
+        let juros = r["Juros A.M. (%)"];
+        if (typeof juros === "string") juros = parseFloat(juros.replace(/\./g, "").replace(",", "."));
+
+        return {
+          ...r,
+          "Modalidade": String(r["Modalidade"] || "").includes(":") ? r["Modalidade"].split(":").slice(1).join(":") : r["Modalidade"],
+          "Data Liberada": formatDate(toDate(r["Data Liberada"])),
+          "Venc. Final": formatDate(toDate(r["Venc. Final"])),
+          "Valor Liberado": val || 0,
+          "Juros A.M. (%)": juros || 0
+        };
+      });
+    }
+
+    function populateDetailsFilters(data) {
+      const agencies = new Set();
+      const managers = new Set();
+
+      data.forEach(r => {
+        if (r["Agência"] && r["Agência"] !== "NÃO ENCONTRADA" && r["Modalidade"] !== "SEM MOVIMENTO") {
+          agencies.add(r["Agência"]);
+        }
+        if (r["Gerente"] && r["Gerente"] !== "NÃO INFORMADO" && r["Modalidade"] !== "SEM MOVIMENTO") {
+          managers.add(r["Gerente"]);
+        }
+      });
+
+      const sortedAgencies = Array.from(agencies).sort();
+      const sortedManagers = Array.from(managers).sort();
+
+      detailsAgenciaFilter.innerHTML = '<option value="Todas">Todas as Agências</option>' + 
+        sortedAgencies.map(a => `<option value="${a}">${a}</option>`).join('');
+      
+      detailsGerenteFilter.innerHTML = '<option value="Todos">Todos os Gerentes</option>' + 
+        sortedManagers.map(m => `<option value="${m}">${m}</option>`).join('');
+    }
+
+    function updateDetailsTable() {
+      if (!window.currentEnrichedData) return;
+
+      const formatCurrency = (val) => (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      
+      const selAgencia = detailsAgenciaFilter.value;
+      const selGerente = detailsGerenteFilter.value;
+
+      const filtered = window.currentEnrichedData.filter(r => {
+        if (r["Modalidade"] === "SEM MOVIMENTO") return false;
+        
+        let passAgencia = true;
+        let passGerente = true;
+
+        if (selAgencia !== "Todas") {
+          passAgencia = (r["Agência"] === selAgencia);
+        }
+        if (selGerente !== "Todos") {
+          passGerente = (r["Gerente"] === selGerente);
+        }
+
+        return passAgencia && passGerente;
+      });
+
+      if (filtered.length === 0) {
+        detailsTableBody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">Nenhuma operação encontrada com os filtros selecionados.</td></tr>';
+        return;
+      }
+
+      detailsTableBody.innerHTML = filtered.map(r => `
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="p-3 text-gray-600">${r["Data Liberada"] || '-'}</td>
+          <td class="p-3 font-mono font-medium text-gray-800">${r["Conta"] || '-'}</td>
+          <td class="p-3 text-gray-800">${r["Agência"] || '-'}</td>
+          <td class="p-3 text-gray-800">${r["Gerente"] || '-'}</td>
+          <td class="p-3 text-gray-600">${r["Contrato/Parcelas"] || '-'}</td>
+          <td class="p-3 text-right font-mono font-medium text-green-700">${formatCurrency(r["Valor Liberado"])}</td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+
+</html>
