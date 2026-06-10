@@ -32,8 +32,8 @@ var CONFIG = {
   // script usa o arquivo mais recente dentro dela (ex.: exportações do Qlik)
   CSV_FILE_ID: '1XoQamjbYeu0xdIDpj-Y9X4ngqGrCE4Ku',
   // Quando o ID acima é de uma pasta, considera apenas arquivos cujo nome
-  // contém este texto (deixe '' para considerar todos). Ex.: '.csv'
-  FILTRO_NOME: '',
+  // contém este texto (deixe '' para considerar todos)
+  FILTRO_NOME: 'basecontascorrente.csv',
   // Codificação preferida do arquivo CSV ('UTF-8' ou 'ISO-8859-1')
   ENCODING: 'UTF-8',
   // Nome da planilha base criada automaticamente
