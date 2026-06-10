@@ -28,8 +28,12 @@
  */
 
 var CONFIG = {
-  // ID do arquivo da base no Google Drive (CSV ou Planilha Google)
+  // ID do arquivo da base no Google Drive — ou de uma PASTA: nesse caso o
+  // script usa o arquivo mais recente dentro dela (ex.: exportações do Qlik)
   CSV_FILE_ID: '1XoQamjbYeu0xdIDpj-Y9X4ngqGrCE4Ku',
+  // Quando o ID acima é de uma pasta, considera apenas arquivos cujo nome
+  // contém este texto (deixe '' para considerar todos). Ex.: '.csv'
+  FILTRO_NOME: '',
   // Codificação preferida do arquivo CSV ('UTF-8' ou 'ISO-8859-1')
   ENCODING: 'UTF-8',
   // Nome da planilha base criada automaticamente
@@ -101,15 +105,16 @@ function atualizarBase() {
 
 /**
  * Lê a origem e devolve uma matriz de linhas (a primeira é o cabeçalho).
- * Aceita arquivo CSV ou arquivo já convertido em Planilha Google.
+ * Aceita arquivo CSV, arquivo já convertido em Planilha Google ou uma pasta
+ * (usa o arquivo mais recente dentro dela).
  */
 function lerLinhasDaOrigem() {
-  var arquivo = DriveApp.getFileById(CONFIG.CSV_FILE_ID);
+  var arquivo = obterArquivoBase();
   var mime = arquivo.getMimeType();
 
   // Caso 1: o arquivo foi convertido para Planilha Google ao subir no Drive
   if (mime === MimeType.GOOGLE_SHEETS) {
-    var abaOrigem = SpreadsheetApp.openById(CONFIG.CSV_FILE_ID).getSheets()[0];
+    var abaOrigem = SpreadsheetApp.openById(arquivo.getId()).getSheets()[0];
     return abaOrigem.getDataRange().getValues();
   }
 
@@ -122,6 +127,31 @@ function lerLinhasDaOrigem() {
   var texto = lerTextoCsv(arquivo);
   var separador = detectarSeparador(texto);
   return Utilities.parseCsv(texto, separador);
+}
+
+/**
+ * Resolve o arquivo da base. Se CONFIG.CSV_FILE_ID apontar para uma pasta,
+ * devolve o arquivo modificado mais recentemente dentro dela (respeitando
+ * CONFIG.FILTRO_NOME); caso contrário devolve o próprio arquivo.
+ */
+function obterArquivoBase() {
+  var item = DriveApp.getFileById(CONFIG.CSV_FILE_ID);
+  if (item.getMimeType() !== MimeType.FOLDER) return item;
+
+  var pasta = DriveApp.getFolderById(CONFIG.CSV_FILE_ID);
+  var arquivos = pasta.getFiles();
+  var escolhido = null;
+  while (arquivos.hasNext()) {
+    var f = arquivos.next();
+    if (CONFIG.FILTRO_NOME && f.getName().toLowerCase().indexOf(CONFIG.FILTRO_NOME.toLowerCase()) === -1) continue;
+    if (!escolhido || f.getLastUpdated() > escolhido.getLastUpdated()) escolhido = f;
+  }
+  if (!escolhido) {
+    throw new Error('Nenhum arquivo encontrado na pasta "' + pasta.getName() + '"' +
+      (CONFIG.FILTRO_NOME ? ' com nome contendo "' + CONFIG.FILTRO_NOME + '"' : '') + '.');
+  }
+  Logger.log('Pasta "' + pasta.getName() + '": usando o arquivo mais recente — "' + escolhido.getName() + '" (' + escolhido.getLastUpdated() + ').');
+  return escolhido;
 }
 
 /**
@@ -164,14 +194,27 @@ function detectarSeparador(texto) {
  * de leitura. Execute manualmente e veja o log.
  */
 function diagnosticarArquivo() {
-  var arquivo = DriveApp.getFileById(CONFIG.CSV_FILE_ID);
+  var item = DriveApp.getFileById(CONFIG.CSV_FILE_ID);
+
+  // Se o ID for de uma pasta, lista o conteúdo e diagnostica o arquivo escolhido
+  if (item.getMimeType() === MimeType.FOLDER) {
+    var pasta = DriveApp.getFolderById(CONFIG.CSV_FILE_ID);
+    Logger.log('O ID configurado é uma PASTA: "' + pasta.getName() + '". Conteúdo:');
+    var lista = pasta.getFiles();
+    while (lista.hasNext()) {
+      var f = lista.next();
+      Logger.log('  - "' + f.getName() + '" | ' + f.getMimeType() + ' | ' + f.getSize() + ' bytes | modificado em ' + f.getLastUpdated());
+    }
+  }
+
+  var arquivo = obterArquivoBase();
   var mime = arquivo.getMimeType();
-  Logger.log('Nome do arquivo: ' + arquivo.getName());
+  Logger.log('Arquivo analisado: ' + arquivo.getName());
   Logger.log('Tipo (MIME): ' + mime);
   Logger.log('Tamanho: ' + arquivo.getSize() + ' bytes');
 
   if (mime === MimeType.GOOGLE_SHEETS) {
-    var aba = SpreadsheetApp.openById(CONFIG.CSV_FILE_ID).getSheets()[0];
+    var aba = SpreadsheetApp.openById(arquivo.getId()).getSheets()[0];
     Logger.log('É uma Planilha Google. Aba "' + aba.getName() + '": ' + aba.getLastRow() + ' linhas x ' + aba.getLastColumn() + ' colunas.');
     if (aba.getLastRow() > 0) {
       Logger.log('Cabeçalho: ' + aba.getRange(1, 1, 1, aba.getLastColumn()).getValues()[0].join(' | '));
