@@ -493,6 +493,22 @@
             Campos esperados: <strong>Conta</strong>, <strong>Nome Agência</strong> e <strong>Gerente de
               Contas</strong>.
           </p>
+          <div class="mt-2 pt-3 border-t border-gray-200">
+            <p class="text-[10px] font-bold text-[#6c757d] uppercase tracking-widest mb-2">Atualização Automática
+              (Google Drive)</p>
+            <div class="flex gap-2 items-center flex-wrap">
+              <input type="text" id="gsheetUrlInput" placeholder="Cole aqui o link da planilha do Google Drive"
+                class="text-xs border border-gray-300 rounded px-2 py-1.5 flex-1 min-w-[200px]">
+              <button id="gsheetConnectBtn" class="btn-secondary text-xs cursor-pointer py-1.5 px-4">Conectar</button>
+              <button id="gsheetSyncBtn" class="btn-secondary text-xs cursor-pointer py-1.5 px-4 hidden">Sincronizar
+                Agora</button>
+              <button id="gsheetDisconnectBtn"
+                class="text-xs text-red-500 hover:underline hidden">Desconectar</button>
+            </div>
+            <p id="gsheetStatus" class="text-[10px] text-gray-400 italic mt-1">
+              A planilha precisa estar compartilhada como "Qualquer pessoa com o link" (Leitor).
+            </p>
+          </div>
         </div>
       </div>
 
@@ -971,6 +987,20 @@
     const loading = document.getElementById('loading');
     const loadingText = document.getElementById('loadingText');
 
+    // Sincronização com Google Drive
+    const gsheetUrlInput = document.getElementById('gsheetUrlInput');
+    const gsheetConnectBtn = document.getElementById('gsheetConnectBtn');
+    const gsheetSyncBtn = document.getElementById('gsheetSyncBtn');
+    const gsheetDisconnectBtn = document.getElementById('gsheetDisconnectBtn');
+    const gsheetStatus = document.getElementById('gsheetStatus');
+    const GSHEET_AUTO_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutos
+    let gsheetSyncTimer = null;
+
+    function armGsheetAutoSync() {
+      if (gsheetSyncTimer) clearInterval(gsheetSyncTimer);
+      gsheetSyncTimer = setInterval(() => syncAgenciasFromGoogle(true), GSHEET_AUTO_SYNC_INTERVAL);
+    }
+
     // Elementos do Filtro Customizado
     const customFilterBtn = document.getElementById('customFilterBtn');
     const customFilterDropdown = document.getElementById('customFilterDropdown');
@@ -1037,6 +1067,13 @@
       document.getElementById('lastUpdate').innerText = new Date().toLocaleDateString('pt-BR');
       loadAgenciasFromStorage();
 
+      // Atualização automática da base via Google Drive
+      updateGsheetUI();
+      if (localStorage.getItem('agencias_gsheet_url')) {
+        syncAgenciasFromGoogle(true);
+        armGsheetAutoSync();
+      }
+
       // Carregar lista de exceções do Google Apps Script
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run.withSuccessHandler(function (excecoes) {
@@ -1047,6 +1084,34 @@
 
     agenciasInput.addEventListener('change', handleAgencias);
     liberacoesInput.addEventListener('change', handleLiberacoes);
+
+    gsheetConnectBtn.addEventListener('click', () => {
+      const url = gsheetUrlInput.value.trim();
+      if (!url) {
+        alert("Cole o link da planilha do Google Drive antes de conectar.");
+        return;
+      }
+      if (!extractGoogleSheetId(url)) {
+        alert("Link inválido. Cole o link de compartilhamento da planilha do Google (docs.google.com/spreadsheets/...).");
+        return;
+      }
+      localStorage.setItem('agencias_gsheet_url', url);
+      updateGsheetUI();
+      syncAgenciasFromGoogle(false);
+      armGsheetAutoSync();
+    });
+
+    gsheetSyncBtn.addEventListener('click', () => syncAgenciasFromGoogle(false));
+
+    gsheetDisconnectBtn.addEventListener('click', () => {
+      localStorage.removeItem('agencias_gsheet_url');
+      localStorage.removeItem('agencias_gsheet_last_sync');
+      if (gsheetSyncTimer) {
+        clearInterval(gsheetSyncTimer);
+        gsheetSyncTimer = null;
+      }
+      updateGsheetUI();
+    });
     resetBtn.addEventListener('click', () => {
       window.lastParsedRows = null;
       window.currentExpandedData = null;
@@ -1729,6 +1794,19 @@
       return c.replace(/^0+/, "");
     }
 
+    function processarLinhasAgencias(rows) {
+      agenciasMap.clear();
+      rows.forEach(row => {
+        const conta = row["Conta"] || row["CONTA"];
+        const agencia = row["Nome Agência"] || row["NOME AGÊNCIA"] || row["AGENCIA"];
+        const gerente = row["Gerente de Contas"] || row["GERENTE"] || row["GERENTE DE CONTAS"] || "NÃO INFORMADO";
+        if (conta && agencia) {
+          agenciasMap.set(normalizarConta(conta), { agencia, gerente });
+        }
+      });
+      return agenciasMap.size;
+    }
+
     function handleAgencias(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -1744,17 +1822,7 @@
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
           const rows = XLSX.utils.sheet_to_json(sheet);
 
-          agenciasMap.clear();
-          rows.forEach(row => {
-            const conta = row["Conta"] || row["CONTA"];
-            const agencia = row["Nome Agência"] || row["NOME AGÊNCIA"] || row["AGENCIA"];
-            const gerente = row["Gerente de Contas"] || row["GERENTE"] || row["GERENTE DE CONTAS"] || "NÃO INFORMADO";
-            if (conta && agencia) {
-              agenciasMap.set(normalizarConta(conta), { agencia, gerente });
-            }
-          });
-
-          if (agenciasMap.size === 0) {
+          if (processarLinhasAgencias(rows) === 0) {
             alert("Nenhuma agência encontrada. Verifique se as colunas se chamam 'Conta' e 'Nome Agência'.");
             loading.style.display = 'none';
             return;
@@ -1777,6 +1845,84 @@
         loading.style.display = 'none';
       };
       reader.readAsArrayBuffer(file);
+    }
+
+    // ============================================================
+    // Atualização Automática via Google Drive (Google Sheets)
+    // ============================================================
+    function extractGoogleSheetId(url) {
+      const m = String(url).match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      return m ? m[1] : null;
+    }
+
+    async function syncAgenciasFromGoogle(silent) {
+      const url = localStorage.getItem('agencias_gsheet_url');
+      if (!url) return;
+
+      const sheetId = extractGoogleSheetId(url);
+      if (!sheetId) {
+        if (!silent) alert("Link inválido. Cole o link de compartilhamento da planilha do Google (docs.google.com/spreadsheets/...).");
+        return;
+      }
+
+      if (!silent) {
+        loading.style.display = 'flex';
+        loadingText.innerText = "Sincronizando base com o Google Drive...";
+      }
+
+      try {
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&t=${Date.now()}`;
+        const resp = await fetch(csvUrl);
+        if (!resp.ok) throw new Error("Falha ao acessar a planilha (HTTP " + resp.status + ").");
+
+        const csvText = await resp.text();
+        if (csvText.trim().startsWith('<')) {
+          throw new Error("A planilha não está pública. Compartilhe como 'Qualquer pessoa com o link' (Leitor).");
+        }
+
+        const workbook = XLSX.read(csvText, { type: 'string' });
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+
+        if (processarLinhasAgencias(rows) === 0) {
+          throw new Error("Nenhuma agência encontrada na planilha. Verifique se as colunas se chamam 'Conta' e 'Nome Agência'.");
+        }
+
+        localStorage.setItem('agencias_base', JSON.stringify(Array.from(agenciasMap.entries())));
+        localStorage.setItem('agencias_gsheet_last_sync', new Date().toISOString());
+        updateAgenciaUI(true);
+        updateGsheetUI();
+        if (!silent) alert("Base sincronizada com o Google Drive: " + agenciasMap.size + " agências.");
+        console.log("✓ Base de agências sincronizada do Google Drive (" + agenciasMap.size + ")");
+      } catch (err) {
+        console.error("Erro na sincronização com Google Drive:", err);
+        if (!silent) alert("Erro na sincronização: " + err.message);
+        else gsheetStatus.innerText = "Falha na sincronização automática: " + err.message;
+      } finally {
+        if (!silent) loading.style.display = 'none';
+      }
+    }
+
+    function updateGsheetUI() {
+      const url = localStorage.getItem('agencias_gsheet_url');
+      if (url) {
+        gsheetUrlInput.value = url;
+        gsheetUrlInput.disabled = true;
+        gsheetConnectBtn.classList.add('hidden');
+        gsheetSyncBtn.classList.remove('hidden');
+        gsheetDisconnectBtn.classList.remove('hidden');
+
+        const lastSync = localStorage.getItem('agencias_gsheet_last_sync');
+        gsheetStatus.innerText = lastSync
+          ? "Planilha conectada. Última sincronização: " + new Date(lastSync).toLocaleString('pt-BR')
+          : "Planilha conectada. Aguardando primeira sincronização...";
+      } else {
+        gsheetUrlInput.value = '';
+        gsheetUrlInput.disabled = false;
+        gsheetConnectBtn.classList.remove('hidden');
+        gsheetSyncBtn.classList.add('hidden');
+        gsheetDisconnectBtn.classList.add('hidden');
+        gsheetStatus.innerText = 'A planilha precisa estar compartilhada como "Qualquer pessoa com o link" (Leitor).';
+      }
     }
 
     async function handleLiberacoes(e) {
