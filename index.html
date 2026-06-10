@@ -1080,7 +1080,8 @@
         localStorage.removeItem('agencias_gsheet_last_sync');
       }
       updateGsheetUI();
-      if (localStorage.getItem('agencias_gsheet_url')) {
+      const dentroDoAppsScript = typeof google !== 'undefined' && google.script && google.script.run;
+      if (dentroDoAppsScript || localStorage.getItem('agencias_gsheet_url')) {
         syncAgenciasFromGoogle(true);
         armGsheetAutoSync();
       }
@@ -1937,50 +1938,91 @@
       return null;
     }
 
+    // Quando o dashboard roda como web app do Apps Script, busca a base direto
+    // do servidor (função getBaseAgencias do projeto) — sem link público.
+    function buscarBaseViaAppsScript() {
+      return new Promise(function (resolve, reject) {
+        if (typeof google === 'undefined' || !google.script || !google.script.run) {
+          reject(new Error('Fora do Apps Script'));
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .getBaseAgencias();
+      });
+    }
+
+    function matrizParaObjetos(matriz) {
+      if (!matriz || matriz.length < 2) return null;
+      const headers = matriz[0].map(function (h) { return String(h).trim(); });
+      return matriz.slice(1).map(function (r) {
+        const obj = {};
+        headers.forEach(function (h, i) { obj[h] = r[i] !== undefined ? String(r[i]).trim() : ''; });
+        return obj;
+      });
+    }
+
     async function syncAgenciasFromGoogle(silent) {
-      const url = localStorage.getItem('agencias_gsheet_url');
-      if (!url) return;
-
-      const ref = extractGoogleRef(url);
-      if (!ref) {
-        if (!silent) alert("Link inválido. Cole o link de compartilhamento (ou o ID) da planilha/arquivo do Google Drive.");
-        return;
-      }
-
       if (!silent) {
         loading.style.display = 'flex';
         loadingText.innerText = "Sincronizando base com o Google Drive...";
       }
 
       try {
-        const gvizUrl = `https://docs.google.com/spreadsheets/d/${ref.id}/gviz/tq?tqx=out:csv&t=${Date.now()}`;
-        const candidatas = ref.type === 'sheets'
-          ? [gvizUrl]
-          : [
-            `https://drive.usercontent.google.com/download?id=${ref.id}&export=download&confirm=t`,
-            `https://drive.google.com/uc?export=download&id=${ref.id}`,
-            gvizUrl
-          ];
+        let rows = null;
 
-        let csvText = null, lastErr = null;
-        for (const u of candidatas) {
-          try {
-            const resp = await fetch(u);
-            if (!resp.ok) { lastErr = new Error("Falha ao acessar o arquivo (HTTP " + resp.status + ")."); continue; }
-            const txt = decodeCsvBuffer(await resp.arrayBuffer());
-            if (txt.trim().startsWith('<')) {
-              lastErr = new Error("O arquivo não está público. Compartilhe como 'Qualquer pessoa com o link' (Leitor).");
-              continue;
-            }
-            csvText = txt;
-            break;
-          } catch (e) {
-            lastErr = e;
-          }
+        // 1ª tentativa: servidor do Apps Script (não precisa de link nem
+        // compartilhamento público — requer atualizar_base.gs no mesmo projeto)
+        try {
+          rows = matrizParaObjetos(await buscarBaseViaAppsScript());
+          if (rows) console.log("✓ Base obtida via Apps Script (servidor)");
+        } catch (e) {
+          rows = null;
         }
-        if (csvText === null) throw (lastErr || new Error("Não foi possível baixar o arquivo do Google Drive."));
 
-        const rows = parseCsvText(csvText);
+        // 2ª tentativa: link/ID configurado pelo usuário
+        if (!rows) {
+          const url = localStorage.getItem('agencias_gsheet_url');
+          if (!url) {
+            if (!silent) alert("Nenhuma fonte configurada. Cole o link da planilha base e clique em Conectar.");
+            return;
+          }
+          const ref = extractGoogleRef(url);
+          if (!ref) {
+            if (!silent) alert("Link inválido. Cole o link de compartilhamento (ou o ID) da planilha/arquivo do Google Drive.");
+            return;
+          }
+
+          const gvizUrl = 'https://docs.google.com/spreadsheets/d/' + ref.id + '/gviz/tq?tqx=out:csv&t=' + Date.now();
+          const candidatas = ref.type === 'sheets'
+            ? [gvizUrl]
+            : [
+              'https://drive.usercontent.google.com/download?id=' + ref.id + '&export=download&confirm=t',
+              'https://drive.google.com/uc?export=download&id=' + ref.id,
+              gvizUrl
+            ];
+
+          let csvText = null, lastErr = null;
+          for (const u of candidatas) {
+            try {
+              const resp = await fetch(u);
+              if (!resp.ok) { lastErr = new Error("Falha ao acessar o arquivo (HTTP " + resp.status + ")."); continue; }
+              const txt = decodeCsvBuffer(await resp.arrayBuffer());
+              if (txt.trim().startsWith('<')) {
+                lastErr = new Error("O arquivo não está público. Compartilhe como 'Qualquer pessoa com o link' (Leitor).");
+                continue;
+              }
+              csvText = txt;
+              break;
+            } catch (e) {
+              lastErr = e;
+            }
+          }
+          if (csvText === null) throw (lastErr || new Error("Não foi possível baixar o arquivo do Google Drive."));
+
+          rows = parseCsvText(csvText);
+        }
 
         if (processarLinhasAgencias(rows) === 0) {
           throw new Error("Nenhum registro válido encontrado. Verifique se o arquivo possui as colunas 'conta', 'nm_agencia' e 'm_carteira_responsavel' (ou 'Conta', 'Nome Agência' e 'Gerente de Contas').");

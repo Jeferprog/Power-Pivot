@@ -233,6 +233,30 @@ function diagnosticarArquivo() {
 }
 
 /**
+ * Entrega a base ao dashboard (chamada pelo front-end via google.script.run).
+ * Devolve uma matriz: primeira linha é o cabeçalho (Conta, Nome Agência,
+ * Gerente de Contas) e as demais são os registros. Se a planilha base ainda
+ * não foi gerada, atualiza na hora a partir do CSV.
+ *
+ * IMPORTANTE: este arquivo deve estar no MESMO projeto Apps Script que o
+ * index.html do dashboard para que a chamada funcione.
+ */
+function getBaseAgencias() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('PLANILHA_BASE_ID');
+  if (!id) {
+    atualizarBase();
+    id = props.getProperty('PLANILHA_BASE_ID');
+  }
+  var aba = SpreadsheetApp.openById(id).getSheetByName(CONFIG.NOME_ABA);
+  if (!aba || aba.getLastRow() < 2) {
+    atualizarBase();
+    aba = SpreadsheetApp.openById(id).getSheetByName(CONFIG.NOME_ABA);
+  }
+  return aba.getDataRange().getDisplayValues();
+}
+
+/**
  * Retorna a planilha base, criando-a na primeira execução e guardando o ID
  * nas propriedades do script para reutilizar nas execuções seguintes.
  */
