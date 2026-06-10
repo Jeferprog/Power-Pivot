@@ -484,20 +484,21 @@
         <div class="mt-4 flex flex-col gap-2">
           <div class="flex gap-2">
             <label class="btn-secondary text-xs cursor-pointer py-2 px-4">
-              <input type="file" id="agenciasInput" accept=".xlsx, .xls" class="hidden">
+              <input type="file" id="agenciasInput" accept=".xlsx, .xls, .csv" class="hidden">
               Atualizar Base
             </label>
             <button id="clearAgenciasBtn" class="text-xs text-red-500 hover:underline hidden">Limpar Memória</button>
           </div>
           <p class="text-[10px] text-gray-400 italic mt-1">
-            Campos esperados: <strong>Conta</strong>, <strong>Nome Agência</strong> e <strong>Gerente de
-              Contas</strong>.
+            Campos esperados (CSV separado por ";"): <strong>conta</strong> e
+            <strong>nm_carteira_responsavel</strong>. Também aceita Excel com <strong>Conta</strong>,
+            <strong>Nome Agência</strong> e <strong>Gerente de Contas</strong>.
           </p>
           <div class="mt-2 pt-3 border-t border-gray-200">
             <p class="text-[10px] font-bold text-[#6c757d] uppercase tracking-widest mb-2">Atualização Automática
               (Google Drive)</p>
             <div class="flex gap-2 items-center flex-wrap">
-              <input type="text" id="gsheetUrlInput" placeholder="Cole aqui o link da planilha do Google Drive"
+              <input type="text" id="gsheetUrlInput" placeholder="Cole o link ou o ID do arquivo no Google Drive"
                 class="text-xs border border-gray-300 rounded px-2 py-1.5 flex-1 min-w-[200px]">
               <button id="gsheetConnectBtn" class="btn-secondary text-xs cursor-pointer py-1.5 px-4">Conectar</button>
               <button id="gsheetSyncBtn" class="btn-secondary text-xs cursor-pointer py-1.5 px-4 hidden">Sincronizar
@@ -993,6 +994,10 @@
     const gsheetSyncBtn = document.getElementById('gsheetSyncBtn');
     const gsheetDisconnectBtn = document.getElementById('gsheetDisconnectBtn');
     const gsheetStatus = document.getElementById('gsheetStatus');
+    // ID padrão da base no Google Drive (arquivo CSV: nome_completo; conta;
+    // cpf_cnpj; data_nascimento; nm_carteira_responsavel). Usado automaticamente
+    // enquanto o usuário não conectar outra planilha/arquivo.
+    const GDRIVE_BASE_FILE_ID = '1XoQamjbYeu0xdIDpj-Y9X4ngqGrCE4Ku';
     const GSHEET_AUTO_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutos
     let gsheetSyncTimer = null;
 
@@ -1067,7 +1072,11 @@
       document.getElementById('lastUpdate').innerText = new Date().toLocaleDateString('pt-BR');
       loadAgenciasFromStorage();
 
-      // Atualização automática da base via Google Drive
+      // Atualização automática da base via Google Drive. Se o usuário ainda não
+      // conectou nenhuma planilha (e não desativou), usa a base padrão.
+      if (!localStorage.getItem('agencias_gsheet_url') && !localStorage.getItem('agencias_gsheet_disabled')) {
+        localStorage.setItem('agencias_gsheet_url', GDRIVE_BASE_FILE_ID);
+      }
       updateGsheetUI();
       if (localStorage.getItem('agencias_gsheet_url')) {
         syncAgenciasFromGoogle(true);
@@ -1091,10 +1100,11 @@
         alert("Cole o link da planilha do Google Drive antes de conectar.");
         return;
       }
-      if (!extractGoogleSheetId(url)) {
-        alert("Link inválido. Cole o link de compartilhamento da planilha do Google (docs.google.com/spreadsheets/...).");
+      if (!extractGoogleRef(url)) {
+        alert("Link inválido. Cole o link de compartilhamento (ou o ID) da planilha/arquivo do Google Drive.");
         return;
       }
+      localStorage.removeItem('agencias_gsheet_disabled');
       localStorage.setItem('agencias_gsheet_url', url);
       updateGsheetUI();
       syncAgenciasFromGoogle(false);
@@ -1106,6 +1116,7 @@
     gsheetDisconnectBtn.addEventListener('click', () => {
       localStorage.removeItem('agencias_gsheet_url');
       localStorage.removeItem('agencias_gsheet_last_sync');
+      localStorage.setItem('agencias_gsheet_disabled', '1');
       if (gsheetSyncTimer) {
         clearInterval(gsheetSyncTimer);
         gsheetSyncTimer = null;
@@ -1797,14 +1808,71 @@
     function processarLinhasAgencias(rows) {
       agenciasMap.clear();
       rows.forEach(row => {
-        const conta = row["Conta"] || row["CONTA"];
-        const agencia = row["Nome Agência"] || row["NOME AGÊNCIA"] || row["AGENCIA"];
-        const gerente = row["Gerente de Contas"] || row["GERENTE"] || row["GERENTE DE CONTAS"] || "NÃO INFORMADO";
-        if (conta && agencia) {
-          agenciasMap.set(normalizarConta(conta), { agencia, gerente });
+        // Normaliza as chaves para aceitar tanto o Excel antigo (Conta, Nome Agência,
+        // Gerente de Contas) quanto o CSV da base (conta, nm_carteira_responsavel)
+        const norm = {};
+        Object.keys(row).forEach(k => {
+          norm[String(k).replace(/^\ufeff/, '').trim().toLowerCase()] = row[k];
+        });
+        const conta = norm["conta"];
+        const agencia = norm["nome agência"] || norm["nome agencia"] || norm["agência"] || norm["agencia"];
+        const gerente = norm["gerente de contas"] || norm["gerente"] || norm["nm_carteira_responsavel"]
+          || norm["carteira responsável"] || norm["carteira responsavel"];
+        if (conta && (agencia || gerente)) {
+          agenciasMap.set(normalizarConta(conta), {
+            agencia: agencia || "NÃO INFORMADA",
+            gerente: gerente || "NÃO INFORMADO"
+          });
         }
       });
       return agenciasMap.size;
+    }
+
+    // Decodifica um buffer de CSV tentando UTF-8 e caindo para ISO-8859-1 (Latin-1)
+    // quando o arquivo foi exportado com acentuação no padrão Windows/Excel.
+    function decodeCsvBuffer(buffer) {
+      const utf8 = new TextDecoder('utf-8').decode(buffer);
+      if (utf8.indexOf('�') === -1) return utf8;
+      return new TextDecoder('iso-8859-1').decode(buffer);
+    }
+
+    // Parser de CSV com detecção automática do separador (";" ou ",") e suporte a
+    // campos entre aspas. Usa a primeira linha como cabeçalho e retorna objetos.
+    function parseCsvText(text) {
+      text = text.replace(/^\ufeff/, '').replace(/\r\n?/g, '\n');
+      const nl = text.indexOf('\n');
+      const firstLine = nl === -1 ? text : text.slice(0, nl);
+      const delim = firstLine.split(';').length >= firstLine.split(',').length ? ';' : ',';
+
+      const rows = [];
+      let row = [], field = '', inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (inQuotes) {
+          if (ch === '"') {
+            if (text[i + 1] === '"') { field += '"'; i++; }
+            else inQuotes = false;
+          } else field += ch;
+        } else if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === delim) {
+          row.push(field); field = '';
+        } else if (ch === '\n') {
+          row.push(field); field = '';
+          rows.push(row); row = [];
+        } else field += ch;
+      }
+      if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+
+      if (rows.length < 2) return [];
+      const headers = rows[0].map(h => h.trim());
+      return rows.slice(1)
+        .filter(r => r.some(v => v && v.trim() !== ''))
+        .map(r => {
+          const obj = {};
+          headers.forEach((h, idx) => { obj[h] = r[idx] !== undefined ? String(r[idx]).trim() : ''; });
+          return obj;
+        });
     }
 
     function handleAgencias(e) {
@@ -1814,16 +1882,22 @@
       loading.style.display = 'flex';
       loadingText.innerText = "Mapeando Agências...";
 
+      const isCsv = /\.csv$/i.test(file.name);
       const reader = new FileReader();
       reader.onload = function (evt) {
         try {
-          const data = new Uint8Array(evt.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(sheet);
+          let rows;
+          if (isCsv) {
+            rows = parseCsvText(decodeCsvBuffer(evt.target.result));
+          } else {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            rows = XLSX.utils.sheet_to_json(sheet);
+          }
 
           if (processarLinhasAgencias(rows) === 0) {
-            alert("Nenhuma agência encontrada. Verifique se as colunas se chamam 'Conta' e 'Nome Agência'.");
+            alert("Nenhum registro encontrado. Verifique se o arquivo possui as colunas 'conta' e 'nm_carteira_responsavel' (CSV) ou 'Conta' e 'Nome Agência' (Excel).");
             loading.style.display = 'none';
             return;
           }
@@ -1848,20 +1922,25 @@
     }
 
     // ============================================================
-    // Atualização Automática via Google Drive (Google Sheets)
+    // Atualização Automática via Google Drive (Google Sheets ou arquivo CSV)
     // ============================================================
-    function extractGoogleSheetId(url) {
-      const m = String(url).match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-      return m ? m[1] : null;
+    function extractGoogleRef(input) {
+      const s = String(input).trim();
+      let m = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      if (m) return { id: m[1], type: 'sheets' };
+      m = s.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (m) return { id: m[1], type: 'drive' };
+      if (/^[a-zA-Z0-9_-]{20,}$/.test(s)) return { id: s, type: 'drive' };
+      return null;
     }
 
     async function syncAgenciasFromGoogle(silent) {
       const url = localStorage.getItem('agencias_gsheet_url');
       if (!url) return;
 
-      const sheetId = extractGoogleSheetId(url);
-      if (!sheetId) {
-        if (!silent) alert("Link inválido. Cole o link de compartilhamento da planilha do Google (docs.google.com/spreadsheets/...).");
+      const ref = extractGoogleRef(url);
+      if (!ref) {
+        if (!silent) alert("Link inválido. Cole o link de compartilhamento (ou o ID) da planilha/arquivo do Google Drive.");
         return;
       }
 
@@ -1871,20 +1950,37 @@
       }
 
       try {
-        const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&t=${Date.now()}`;
-        const resp = await fetch(csvUrl);
-        if (!resp.ok) throw new Error("Falha ao acessar a planilha (HTTP " + resp.status + ").");
+        const gvizUrl = `https://docs.google.com/spreadsheets/d/${ref.id}/gviz/tq?tqx=out:csv&t=${Date.now()}`;
+        const candidatas = ref.type === 'sheets'
+          ? [gvizUrl]
+          : [
+            `https://drive.usercontent.google.com/download?id=${ref.id}&export=download&confirm=t`,
+            `https://drive.google.com/uc?export=download&id=${ref.id}`,
+            gvizUrl
+          ];
 
-        const csvText = await resp.text();
-        if (csvText.trim().startsWith('<')) {
-          throw new Error("A planilha não está pública. Compartilhe como 'Qualquer pessoa com o link' (Leitor).");
+        let csvText = null, lastErr = null;
+        for (const u of candidatas) {
+          try {
+            const resp = await fetch(u);
+            if (!resp.ok) { lastErr = new Error("Falha ao acessar o arquivo (HTTP " + resp.status + ")."); continue; }
+            const txt = decodeCsvBuffer(await resp.arrayBuffer());
+            if (txt.trim().startsWith('<')) {
+              lastErr = new Error("O arquivo não está público. Compartilhe como 'Qualquer pessoa com o link' (Leitor).");
+              continue;
+            }
+            csvText = txt;
+            break;
+          } catch (e) {
+            lastErr = e;
+          }
         }
+        if (csvText === null) throw (lastErr || new Error("Não foi possível baixar o arquivo do Google Drive."));
 
-        const workbook = XLSX.read(csvText, { type: 'string' });
-        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        const rows = parseCsvText(csvText);
 
         if (processarLinhasAgencias(rows) === 0) {
-          throw new Error("Nenhuma agência encontrada na planilha. Verifique se as colunas se chamam 'Conta' e 'Nome Agência'.");
+          throw new Error("Nenhum registro válido encontrado. Verifique se o arquivo possui as colunas 'conta' e 'nm_carteira_responsavel' (ou 'Conta' e 'Nome Agência').");
         }
 
         localStorage.setItem('agencias_base', JSON.stringify(Array.from(agenciasMap.entries())));
