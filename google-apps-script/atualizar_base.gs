@@ -4,10 +4,11 @@
  *
  * Este script lê o arquivo CSV da base no Google Drive (separado por ";",
  * cabeçalho: nome_completo; conta; cpf_cnpj; data_nascimento;
- * nm_carteira_responsavel) e copia, UMA VEZ POR DIA, somente os campos que o
- * dashboard precisa (conta e nm_carteira_responsavel) para uma planilha
- * Google ("planilha base"). O dashboard lê essa planilha base — assim os
- * dados sensíveis (CPF/CNPJ, data de nascimento) nunca chegam ao navegador.
+ * m_carteira_responsavel; nm_carteira; nm_agencia) e copia, UMA VEZ POR DIA,
+ * somente os campos que o dashboard precisa — Conta, Nome Agência e Gerente
+ * de Contas — para uma planilha Google ("planilha base"). O dashboard lê essa
+ * planilha base — assim os dados sensíveis (CPF/CNPJ, data de nascimento)
+ * nunca chegam ao navegador.
  *
  * COMO INSTALAR (uma única vez):
  *   1. Acesse https://script.google.com e crie um novo projeto.
@@ -35,8 +36,13 @@ var CONFIG = {
   NOME_ABA: 'base',
   // Hora do dia (0-23) em que o gatilho diário roda
   HORA_GATILHO: 6,
-  // Campos do CSV que serão copiados para a planilha base
-  CAMPOS: ['conta', 'nm_carteira_responsavel']
+  // Mapeamento: coluna de origem no CSV → cabeçalho na planilha base.
+  // Em "origem" pode-se listar mais de um nome de coluna (usa o primeiro que existir).
+  CAMPOS: [
+    { origem: ['conta'], destino: 'Conta' },
+    { origem: ['nm_agencia'], destino: 'Nome Agência' },
+    { origem: ['m_carteira_responsavel', 'nm_carteira_responsavel'], destino: 'Gerente de Contas' }
+  ]
 };
 
 /**
@@ -63,15 +69,16 @@ function atualizarBase() {
     return String(c).replace(/^\uFEFF/, '').trim().toLowerCase();
   });
   var indices = CONFIG.CAMPOS.map(function (campo) {
-    var idx = cabecalho.indexOf(campo.toLowerCase());
-    if (idx === -1) {
-      throw new Error("Coluna '" + campo + "' não encontrada no CSV. Cabeçalho lido: " + cabecalho.join(' | '));
+    var candidatos = campo.origem.map(function (c) { return c.toLowerCase(); });
+    for (var j = 0; j < candidatos.length; j++) {
+      var idx = cabecalho.indexOf(candidatos[j]);
+      if (idx !== -1) return idx;
     }
-    return idx;
+    throw new Error("Coluna '" + campo.origem.join("' ou '") + "' não encontrada no CSV. Cabeçalho lido: " + cabecalho.join(' | '));
   });
 
   // Monta as linhas de saída, ignorando registros sem conta
-  var saida = [CONFIG.CAMPOS.slice()];
+  var saida = [CONFIG.CAMPOS.map(function (campo) { return campo.destino; })];
   for (var i = 1; i < linhas.length; i++) {
     var valores = indices.map(function (idx) {
       return linhas[i][idx] !== undefined ? String(linhas[i][idx]).trim() : '';

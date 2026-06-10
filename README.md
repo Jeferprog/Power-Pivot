@@ -5,12 +5,19 @@ Dashboard de liberações com mapeamento de agências/gerentes por conta.
 ## Atualização automática da Base de Agências
 
 A base de origem é um arquivo CSV no Google Drive (separado por `;`) com o cabeçalho:
-`nome_completo; conta; cpf_cnpj; data_nascimento; nm_carteira_responsavel`.
+`nome_completo; conta; cpf_cnpj; data_nascimento; m_carteira_responsavel; nm_carteira; nm_agencia`.
 
 O fluxo recomendado usa um gatilho diário no Google Apps Script que copia **somente os
-campos necessários** (`conta` e `nm_carteira_responsavel`) para uma planilha Google
-intermediária ("planilha base"). O dashboard sincroniza a partir dessa planilha —
-os dados sensíveis (CPF/CNPJ, data de nascimento) não chegam ao navegador.
+campos necessários** para uma planilha Google intermediária ("planilha base"):
+
+| Coluna no CSV de origem    | Coluna na planilha base |
+| -------------------------- | ----------------------- |
+| `conta`                    | Conta                   |
+| `nm_agencia`               | Nome Agência            |
+| `m_carteira_responsavel`   | Gerente de Contas       |
+
+O dashboard sincroniza a partir dessa planilha — os dados sensíveis
+(CPF/CNPJ, data de nascimento) não chegam ao navegador.
 
 ```
 CSV no Drive  ──(gatilho diário do Apps Script)──►  Planilha base  ──(sincronização ao abrir / a cada 5 min)──►  Dashboard
