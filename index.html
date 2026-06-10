@@ -498,7 +498,7 @@
             <p class="text-[10px] font-bold text-[#6c757d] uppercase tracking-widest mb-2">Atualização Automática
               (Google Drive)</p>
             <div class="flex gap-2 items-center flex-wrap">
-              <input type="text" id="gsheetUrlInput" placeholder="Cole o link ou o ID do arquivo no Google Drive"
+              <input type="text" id="gsheetUrlInput" placeholder="Cole o link da planilha base (gerada pelo Apps Script)"
                 class="text-xs border border-gray-300 rounded px-2 py-1.5 flex-1 min-w-[200px]">
               <button id="gsheetConnectBtn" class="btn-secondary text-xs cursor-pointer py-1.5 px-4">Conectar</button>
               <button id="gsheetSyncBtn" class="btn-secondary text-xs cursor-pointer py-1.5 px-4 hidden">Sincronizar
@@ -994,10 +994,10 @@
     const gsheetSyncBtn = document.getElementById('gsheetSyncBtn');
     const gsheetDisconnectBtn = document.getElementById('gsheetDisconnectBtn');
     const gsheetStatus = document.getElementById('gsheetStatus');
-    // ID padrão da base no Google Drive (arquivo CSV: nome_completo; conta;
-    // cpf_cnpj; data_nascimento; nm_carteira_responsavel). Usado automaticamente
-    // enquanto o usuário não conectar outra planilha/arquivo.
-    const GDRIVE_BASE_FILE_ID = '1XoQamjbYeu0xdIDpj-Y9X4ngqGrCE4Ku';
+    // ID da pasta da base no Drive — usado apenas para limpar configurações
+    // antigas salvas no navegador (a conexão correta é o link da planilha
+    // base gerada pelo Apps Script)
+    const GDRIVE_PASTA_BASE_ID = '1XoQamjbYeu0xdIDpj-Y9X4ngqGrCE4Ku';
     const GSHEET_AUTO_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutos
     let gsheetSyncTimer = null;
 
@@ -1072,10 +1072,12 @@
       document.getElementById('lastUpdate').innerText = new Date().toLocaleDateString('pt-BR');
       loadAgenciasFromStorage();
 
-      // Atualização automática da base via Google Drive. Se o usuário ainda não
-      // conectou nenhuma planilha (e não desativou), usa a base padrão.
-      if (!localStorage.getItem('agencias_gsheet_url') && !localStorage.getItem('agencias_gsheet_disabled')) {
-        localStorage.setItem('agencias_gsheet_url', GDRIVE_BASE_FILE_ID);
+      // Atualização automática da base via Google Drive. Limpa a configuração
+      // antiga que apontava para a pasta da base (não funciona para leitura
+      // direta — a conexão correta é o link da planilha base do Apps Script).
+      if (localStorage.getItem('agencias_gsheet_url') === GDRIVE_PASTA_BASE_ID) {
+        localStorage.removeItem('agencias_gsheet_url');
+        localStorage.removeItem('agencias_gsheet_last_sync');
       }
       updateGsheetUI();
       if (localStorage.getItem('agencias_gsheet_url')) {
@@ -2002,9 +2004,8 @@
     function updateGsheetUI() {
       const url = localStorage.getItem('agencias_gsheet_url');
       if (url) {
-        gsheetUrlInput.value = url;
-        gsheetUrlInput.disabled = true;
-        gsheetConnectBtn.classList.add('hidden');
+        // Campo continua editável: colar um link novo e clicar em Conectar substitui o atual
+        if (document.activeElement !== gsheetUrlInput) gsheetUrlInput.value = url;
         gsheetSyncBtn.classList.remove('hidden');
         gsheetDisconnectBtn.classList.remove('hidden');
 
@@ -2014,8 +2015,6 @@
           : "Planilha conectada. Aguardando primeira sincronização...";
       } else {
         gsheetUrlInput.value = '';
-        gsheetUrlInput.disabled = false;
-        gsheetConnectBtn.classList.remove('hidden');
         gsheetSyncBtn.classList.add('hidden');
         gsheetDisconnectBtn.classList.add('hidden');
         gsheetStatus.innerText = 'A planilha precisa estar compartilhada como "Qualquer pessoa com o link" (Leitor).';
