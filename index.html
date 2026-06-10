@@ -994,6 +994,9 @@
     const gsheetSyncBtn = document.getElementById('gsheetSyncBtn');
     const gsheetDisconnectBtn = document.getElementById('gsheetDisconnectBtn');
     const gsheetStatus = document.getElementById('gsheetStatus');
+    // Planilha base padrão (gerada pelo gatilho diário do Apps Script).
+    // Usada automaticamente quando nenhum outro link foi conectado.
+    const PLANILHA_BASE_PADRAO_URL = 'https://docs.google.com/spreadsheets/d/1UD_BwSikX4Qdb2QFPTLnxhmEKi0j7wLtfxiPPl7H1EM/edit';
     // ID da pasta da base no Drive — usado apenas para limpar configurações
     // antigas salvas no navegador (a conexão correta é o link da planilha
     // base gerada pelo Apps Script)
@@ -1079,12 +1082,12 @@
         localStorage.removeItem('agencias_gsheet_url');
         localStorage.removeItem('agencias_gsheet_last_sync');
       }
+      // Abre imediatamente com a base do cache (carregada acima) e sincroniza
+      // em segundo plano — a fonte padrão garante base atualizada já na
+      // primeira abertura, sem configurar nada.
       updateGsheetUI();
-      const dentroDoAppsScript = typeof google !== 'undefined' && google.script && google.script.run;
-      if (dentroDoAppsScript || localStorage.getItem('agencias_gsheet_url')) {
-        syncAgenciasFromGoogle(true);
-        armGsheetAutoSync();
-      }
+      syncAgenciasFromGoogle(true);
+      armGsheetAutoSync();
 
       // Carregar lista de exceções do Google Apps Script
       if (typeof google !== 'undefined' && google.script && google.script.run) {
@@ -1107,7 +1110,6 @@
         alert("Link inválido. Cole o link de compartilhamento (ou o ID) da planilha/arquivo do Google Drive.");
         return;
       }
-      localStorage.removeItem('agencias_gsheet_disabled');
       localStorage.setItem('agencias_gsheet_url', url);
       updateGsheetUI();
       syncAgenciasFromGoogle(false);
@@ -1117,13 +1119,9 @@
     gsheetSyncBtn.addEventListener('click', () => syncAgenciasFromGoogle(false));
 
     gsheetDisconnectBtn.addEventListener('click', () => {
+      // Remove o link conectado — o sistema volta para a planilha base padrão
       localStorage.removeItem('agencias_gsheet_url');
       localStorage.removeItem('agencias_gsheet_last_sync');
-      localStorage.setItem('agencias_gsheet_disabled', '1');
-      if (gsheetSyncTimer) {
-        clearInterval(gsheetSyncTimer);
-        gsheetSyncTimer = null;
-      }
       updateGsheetUI();
     });
     resetBtn.addEventListener('click', () => {
@@ -1981,13 +1979,9 @@
           rows = null;
         }
 
-        // 2ª tentativa: link/ID configurado pelo usuário
+        // 2ª tentativa: link conectado pelo usuário ou a planilha base padrão
         if (!rows) {
-          const url = localStorage.getItem('agencias_gsheet_url');
-          if (!url) {
-            if (!silent) alert("Nenhuma fonte configurada. Cole o link da planilha base e clique em Conectar.");
-            return;
-          }
+          const url = localStorage.getItem('agencias_gsheet_url') || PLANILHA_BASE_PADRAO_URL;
           const ref = extractGoogleRef(url);
           if (!ref) {
             if (!silent) alert("Link inválido. Cole o link de compartilhamento (ou o ID) da planilha/arquivo do Google Drive.");
@@ -2045,21 +2039,24 @@
 
     function updateGsheetUI() {
       const url = localStorage.getItem('agencias_gsheet_url');
+      const lastSync = localStorage.getItem('agencias_gsheet_last_sync');
+      const quando = lastSync
+        ? " Última sincronização: " + new Date(lastSync).toLocaleString('pt-BR') + "."
+        : " Aguardando primeira sincronização...";
+
+      // O botão de sincronizar fica sempre disponível (há sempre uma fonte:
+      // a conectada pelo usuário ou a planilha base padrão)
+      gsheetSyncBtn.classList.remove('hidden');
+
       if (url) {
         // Campo continua editável: colar um link novo e clicar em Conectar substitui o atual
         if (document.activeElement !== gsheetUrlInput) gsheetUrlInput.value = url;
-        gsheetSyncBtn.classList.remove('hidden');
         gsheetDisconnectBtn.classList.remove('hidden');
-
-        const lastSync = localStorage.getItem('agencias_gsheet_last_sync');
-        gsheetStatus.innerText = lastSync
-          ? "Planilha conectada. Última sincronização: " + new Date(lastSync).toLocaleString('pt-BR')
-          : "Planilha conectada. Aguardando primeira sincronização...";
+        gsheetStatus.innerText = "Planilha conectada." + quando;
       } else {
-        gsheetUrlInput.value = '';
-        gsheetSyncBtn.classList.add('hidden');
+        if (document.activeElement !== gsheetUrlInput) gsheetUrlInput.value = '';
         gsheetDisconnectBtn.classList.add('hidden');
-        gsheetStatus.innerText = 'A planilha precisa estar compartilhada como "Qualquer pessoa com o link" (Leitor).';
+        gsheetStatus.innerText = "Sincronização automática em segundo plano ativa (planilha base padrão)." + quando;
       }
     }
 

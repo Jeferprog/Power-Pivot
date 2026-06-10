@@ -36,6 +36,9 @@ var CONFIG = {
   FILTRO_NOME: 'basecontascorrente.csv',
   // Codificação preferida do arquivo CSV ('UTF-8' ou 'ISO-8859-1')
   ENCODING: 'UTF-8',
+  // ID da planilha base já criada (evita criar outra se a propriedade do
+  // script for perdida). Deixe '' para criar automaticamente.
+  PLANILHA_BASE_ID_FIXO: '1UD_BwSikX4Qdb2QFPTLnxhmEKi0j7wLtfxiPPl7H1EM',
   // Nome da planilha base criada automaticamente
   NOME_PLANILHA_BASE: 'Power Pivot - Base de Agências (Automática)',
   // Nome da aba dentro da planilha base
@@ -242,16 +245,10 @@ function diagnosticarArquivo() {
  * index.html do dashboard para que a chamada funcione.
  */
 function getBaseAgencias() {
-  var props = PropertiesService.getScriptProperties();
-  var id = props.getProperty('PLANILHA_BASE_ID');
-  if (!id) {
-    atualizarBase();
-    id = props.getProperty('PLANILHA_BASE_ID');
-  }
-  var aba = SpreadsheetApp.openById(id).getSheetByName(CONFIG.NOME_ABA);
+  var aba = obterPlanilhaBase().getSheetByName(CONFIG.NOME_ABA);
   if (!aba || aba.getLastRow() < 2) {
     atualizarBase();
-    aba = SpreadsheetApp.openById(id).getSheetByName(CONFIG.NOME_ABA);
+    aba = obterPlanilhaBase().getSheetByName(CONFIG.NOME_ABA);
   }
   return aba.getDataRange().getDisplayValues();
 }
@@ -262,10 +259,12 @@ function getBaseAgencias() {
  */
 function obterPlanilhaBase() {
   var props = PropertiesService.getScriptProperties();
-  var id = props.getProperty('PLANILHA_BASE_ID');
+  var id = props.getProperty('PLANILHA_BASE_ID') || CONFIG.PLANILHA_BASE_ID_FIXO;
   if (id) {
     try {
-      return SpreadsheetApp.openById(id);
+      var existente = SpreadsheetApp.openById(id);
+      props.setProperty('PLANILHA_BASE_ID', existente.getId());
+      return existente;
     } catch (e) {
       // Planilha foi excluída — cria outra abaixo
     }
