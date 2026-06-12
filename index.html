@@ -155,6 +155,53 @@
       background-color: #e2e8f0 !important;
     }
 
+    /* Rolagem própria da tabela: cabeçalho e coluna de agência sempre visíveis */
+    #pivotContainer {
+      max-height: 70vh;
+      overflow: auto;
+      border: 1px solid var(--border-gray);
+      border-radius: var(--border-radius);
+    }
+
+    /* Subcabeçalho (linha das métricas) em tom mais claro e discreto */
+    table.pvtTable thead tr:nth-child(2) th.pvtColLabel {
+      background-color: #0e7c63 !important;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* Colunas de Total Geral destacadas */
+    table.pvtTable .rowTotal {
+      background-color: #f0fdf4 !important;
+      font-weight: 600;
+    }
+
+    /* Linha/célula de Total Geral destacada */
+    table.pvtTable .pvtTotalLabel,
+    table.pvtTable .pvtGrandTotal {
+      background-color: #e7f5ef !important;
+      color: var(--primary-green) !important;
+      font-weight: 700 !important;
+    }
+
+    /* Valores zerados esmaecidos para destacar o que teve movimento */
+    table.pvtTable tbody td.pvt-zero {
+      color: #c1c7cf !important;
+      font-weight: 400;
+    }
+
+    /* Agência clicável (abre o detalhamento por gerente) */
+    table.pvtTable .pvtRowLabel {
+      cursor: pointer;
+    }
+
+    table.pvtTable .pvtRowLabel:hover {
+      color: var(--primary-green);
+      text-decoration: underline;
+    }
+
     /* Botões */
     .btn-primary {
       background-color: var(--accent-orange);
@@ -545,7 +592,8 @@
       <div class="mb-6 pb-6 border-b border-gray-100 flex items-center justify-between">
         <div>
           <h3 class="text-lg font-bold text-[#005c46]">Visualização de Dados</h3>
-          <p class="text-sm text-gray-500">Filtre as operações pela modalidade desejada.</p>
+          <p class="text-sm text-gray-500">Filtre as operações pela modalidade desejada. Clique no nome de uma
+            agência para ver o detalhamento por gerente.</p>
         </div>
         <div class="relative">
           <button id="customFilterBtn" class="btn-secondary flex items-center gap-2 bg-white">
@@ -873,6 +921,7 @@
                 <th class="p-3 font-bold">Conta</th>
                 <th class="p-3 font-bold">Agência</th>
                 <th class="p-3 font-bold">Gerente de Contas</th>
+                <th class="p-3 font-bold">Modalidade</th>
                 <th class="p-3 font-bold">Número do Contrato</th>
                 <th class="p-3 font-bold text-right">Valor Liberado</th>
               </tr>
@@ -1488,6 +1537,7 @@
           renderPivotTableOnly(window.currentExpandedData);
           updateRankings();
           updateManagerPerformance();
+          updateDetailsTable();
         }
       });
     }
@@ -2738,6 +2788,30 @@
             }
           }
         }
+
+        // Rótulos mais curtos nas colunas de métricas (apenas exibição)
+        table.querySelectorAll("thead th.pvtColLabel").forEach(th => {
+          if (th.innerText === "Soma Valor") th.innerText = "Valor (R$)";
+          if (th.innerText === "Qtd Operações") th.innerText = "Qtd Op.";
+        });
+
+        // Esmaece os valores zerados para destacar o que teve movimento
+        table.querySelectorAll("tbody td").forEach(td => {
+          const t = td.innerText.trim();
+          if (t === "" || t === "0" || t === "R$ 0,00" || t === "0 op.") td.classList.add("pvt-zero");
+        });
+
+        // Dica visual de que a agência é clicável
+        table.querySelectorAll(".pvtRowLabel").forEach(l => {
+          l.title = "Clique para ver o detalhamento por gerente";
+        });
+
+        // Empilha as linhas do cabeçalho para a rolagem vertical não sobrepô-las
+        let topOffset = 0;
+        table.querySelectorAll("thead tr").forEach(tr => {
+          tr.querySelectorAll("th").forEach(th => { th.style.top = topOffset + "px"; });
+          topOffset += tr.getBoundingClientRect().height;
+        });
       }, 100);
     }
 
@@ -3185,7 +3259,10 @@
 
       const filtered = window.currentEnrichedData.filter(r => {
         if (r["Modalidade"] === "SEM MOVIMENTO") return false;
-        
+
+        // Respeita o filtro de modalidades aplicado na Tabela Dinâmica
+        if (window.selectedModalities.size > 0 && !window.selectedModalities.has(r["Modalidade"])) return false;
+
         let passAgencia = true;
         let passGerente = true;
 
@@ -3200,7 +3277,7 @@
       });
 
       if (filtered.length === 0) {
-        detailsTableBody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">Nenhuma operação encontrada com os filtros selecionados.</td></tr>';
+        detailsTableBody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-gray-500 italic">Nenhuma operação encontrada com os filtros selecionados.</td></tr>';
         return;
       }
 
@@ -3210,6 +3287,7 @@
           <td class="p-3 font-mono font-medium text-gray-800">${r["Conta"] || '-'}</td>
           <td class="p-3 text-gray-800">${r["Agência"] || '-'}</td>
           <td class="p-3 text-gray-800">${r["Gerente"] || '-'}</td>
+          <td class="p-3 text-gray-600">${r["Modalidade"] || '-'}</td>
           <td class="p-3 text-gray-600">${r["Contrato/Parcelas"] || '-'}</td>
           <td class="p-3 text-right font-mono font-medium text-green-700">${formatCurrency(r["Valor Liberado"])}</td>
         </tr>
