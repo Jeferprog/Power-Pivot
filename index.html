@@ -118,8 +118,7 @@
 
     table.pvtTable {
       width: auto;
-      min-width: 100%;
-      font-size: 13px;
+      font-size: 12px;
       border-collapse: separate;
       border-spacing: 0;
       border: 1px solid var(--border-gray);
@@ -130,17 +129,14 @@
     table.pvtTable thead tr th {
       background-color: #f2f4f6 !important;
       color: var(--text-dark) !important;
-      padding: 10px 14px;
+      padding: 8px 10px;
       font-weight: 600;
-      position: sticky;
-      top: 0;
-      z-index: 100;
     }
 
     table.pvtTable tbody tr th {
       background-color: #ffffff !important;
       border: 1px solid var(--border-gray);
-      padding: 6px 12px;
+      padding: 5px 10px;
       font-weight: 500;
       color: var(--text-dark);
     }
@@ -152,7 +148,7 @@
 
     table.pvtTable tbody tr td {
       border: 1px solid var(--border-gray);
-      padding: 6px 12px;
+      padding: 5px 10px;
       text-align: right;
       background: white;
     }
@@ -169,22 +165,13 @@
       border-right: 2px solid var(--primary-green) !important;
     }
 
-    /* Fixar o Canto Superior Esquerdo */
+    /* Fixar a coluna do canto esquerdo na rolagem horizontal */
     table.pvtTable .pvtAxisLabel,
     table.pvtTable .pvtCorner {
       position: sticky;
       left: 0;
-      top: 0;
       z-index: 150;
       background-color: #e2e8f0 !important;
-    }
-
-    /* Rolagem própria da tabela: cabeçalho e coluna de agência sempre visíveis */
-    #pivotContainer {
-      max-height: 70vh;
-      overflow: auto;
-      border: 1px solid var(--border-gray);
-      border-radius: var(--border-radius);
     }
 
     /* Subcabeçalho (linha das métricas) em tom mais claro e discreto */
@@ -904,7 +891,36 @@
             <h3 class="text-lg font-bold text-[#005c46]">Detalhamento de Operações</h3>
             <p class="text-sm text-gray-500">Visualize as operações individuais de todas as modalidades (exceto SEM MOVIMENTO).</p>
           </div>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 flex-wrap">
+            <div class="relative">
+              <button id="detailsModalityFilterBtn" class="btn-secondary flex items-center gap-2 bg-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                </svg>
+                Filtrar Modalidade (<span id="detailsSelectedModalitiesCount">Todas</span>)
+              </button>
+              <div id="detailsModalityFilterDropdown"
+                class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-[2000] p-4">
+                <div class="flex justify-between items-center mb-3">
+                  <h4 class="font-bold text-sm text-gray-700">Selecione as Modalidades</h4>
+                  <div class="flex gap-2">
+                    <button id="detailsSelectAllModalities"
+                      class="text-xs text-blue-600 hover:underline">Todas</button>
+                    <button id="detailsClearAllModalities"
+                      class="text-xs text-gray-500 hover:underline">Nenhuma</button>
+                  </div>
+                </div>
+                <input type="text" id="detailsModalitySearch" placeholder="Buscar modalidade..."
+                  class="w-full text-sm border border-gray-300 rounded-md px-3 py-2 mb-3 focus:outline-none focus:ring-1 focus:ring-green-500">
+                <div id="detailsModalityList" class="max-h-60 overflow-y-auto space-y-2 text-sm">
+                  <!-- Checkboxes serão injetados aqui -->
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                  <button id="detailsApplyModalityFilterBtn" class="btn-primary !py-1.5 !px-4 text-sm">Aplicar</button>
+                </div>
+              </div>
+            </div>
             <select id="detailsAgenciaFilter" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500">
               <option value="Todas">Todas as Agências</option>
             </select>
@@ -1543,7 +1559,8 @@
         const allLists = [
           document.getElementById('modalityList'),
           document.getElementById('rankingsModalityList'),
-          document.getElementById('mgrModalityList')
+          document.getElementById('mgrModalityList'),
+          document.getElementById('detailsModalityList')
         ];
         allLists.forEach(l => {
           if (l && l !== list) {
@@ -1568,6 +1585,7 @@
     setupModalityFilter('customFilterBtn', 'customFilterDropdown', 'modalitySearch', 'modalityList', 'selectAllModalities', 'clearAllModalities', 'applyFilterBtn');
     setupModalityFilter('rankingsModalityFilterBtn', 'rankingsModalityFilterDropdown', 'rankingsModalitySearch', 'rankingsModalityList', 'rankingsSelectAllModalities', 'rankingsClearAllModalities', 'rankingsApplyModalityFilterBtn');
     setupModalityFilter('mgrModalityFilterBtn', 'mgrModalityFilterDropdown', 'mgrModalitySearch', 'mgrModalityList', 'mgrSelectAllModalities', 'mgrClearAllModalities', 'mgrApplyModalityFilterBtn');
+    setupModalityFilter('detailsModalityFilterBtn', 'detailsModalityFilterDropdown', 'detailsModalitySearch', 'detailsModalityList', 'detailsSelectAllModalities', 'detailsClearAllModalities', 'detailsApplyModalityFilterBtn');
 
     function updateModalityFilterCount() {
       const list = document.getElementById('modalityList');
@@ -1581,6 +1599,9 @@
 
       const mCount = document.getElementById('mgrSelectedModalitiesCount');
       if (mCount) mCount.innerText = text;
+
+      const dCount = document.getElementById('detailsSelectedModalitiesCount');
+      if (dCount) dCount.innerText = text;
     }
 
     function populateCustomFilter(data) {
@@ -1614,6 +1635,9 @@
 
       const mgrList = document.getElementById('mgrModalityList');
       if (mgrList) mgrList.innerHTML = html;
+
+      const dList = document.getElementById('detailsModalityList');
+      if (dList) dList.innerHTML = html;
 
       updateModalityFilterCount();
     }
@@ -2740,7 +2764,12 @@
         const tbody = table.querySelector("tbody");
         if (tbody) {
           tbody.querySelectorAll("tr").forEach(tr => {
-            const totalTd = tr.querySelector(".pvtTotal");
+            // Divide apenas a célula de total da LINHA (coluna da direita).
+            // Na linha de totais, a célula equivalente é o Total Geral
+            // (pvtGrandTotal) — usar ".pvtTotal" genérico pegava o total da
+            // primeira data e desalinhava a linha inteira.
+            const totalTd = tr.querySelector("td.pvtTotal.rowTotal") || tr.querySelector("td.pvtGrandTotal");
+            const isGrandTotal = totalTd && totalTd.classList.contains("pvtGrandTotal");
             if (totalTd) {
               const textContent = totalTd.innerText;
               let valText = "R$ 0,00";
@@ -2759,11 +2788,11 @@
               }
 
               const valTd = document.createElement("td");
-              valTd.className = "pvtVal rowTotal";
+              valTd.className = isGrandTotal ? "pvtGrandTotal" : "pvtVal rowTotal";
               valTd.innerText = valText;
 
               const qtdTd = document.createElement("td");
-              qtdTd.className = "pvtVal rowTotal";
+              qtdTd.className = isGrandTotal ? "pvtGrandTotal" : "pvtVal rowTotal";
               qtdTd.innerText = qtdText;
 
               tr.insertBefore(valTd, totalTd);
@@ -2773,50 +2802,15 @@
           });
         }
 
-        const tfoot = table.querySelector("tfoot");
-        if (tfoot) {
-          const tr = tfoot.querySelector("tr");
-          if (tr) {
-            const grandTotalCells = tr.querySelectorAll(".pvtGrandTotal");
-            if (grandTotalCells.length > 0) {
-              const grandTotalTd = grandTotalCells[grandTotalCells.length - 1];
-              const textContent = grandTotalTd.innerText;
-              let valText = "R$ 0,00";
-              let qtdText = "0 op.";
-
-              if (textContent.includes(" | ")) {
-                const parts = textContent.split(" | ");
-                valText = parts[0] || "R$ 0,00";
-                qtdText = parts[1] || "0 op.";
-              } else {
-                // Se não tiver o separador, tentamos inferir pelo conteúdo
-                if (textContent.includes("op.")) {
-                  qtdText = textContent;
-                } else {
-                  valText = textContent;
-                }
-              }
-
-              const valTd = document.createElement("th");
-              valTd.className = "pvtGrandTotal";
-              valTd.innerText = valText;
-
-              const qtdTd = document.createElement("th");
-              qtdTd.className = "pvtGrandTotal";
-              qtdTd.innerText = qtdText;
-
-              tr.insertBefore(valTd, grandTotalTd);
-              tr.insertBefore(qtdTd, grandTotalTd);
-              tr.removeChild(grandTotalTd);
-            }
-          }
-        }
-
         // Rótulos mais curtos nas colunas de métricas (apenas exibição)
         table.querySelectorAll("thead th.pvtColLabel").forEach(th => {
           if (th.innerText === "Soma Valor") th.innerText = "Valor (R$)";
-          if (th.innerText === "Qtd Operações") th.innerText = "Qtd Op.";
+          if (th.innerText === "Qtd Operações") th.innerText = "Qtd";
         });
+
+        // Traduz o rótulo da linha de totais
+        const totalRowLabel = table.querySelector("tbody th.pvtTotalLabel");
+        if (totalRowLabel) totalRowLabel.innerText = "Total Geral";
 
         // Esmaece os valores zerados para destacar o que teve movimento
         table.querySelectorAll("tbody td").forEach(td => {
@@ -2827,13 +2821,6 @@
         // Dica visual de que a agência é clicável
         table.querySelectorAll(".pvtRowLabel").forEach(l => {
           l.title = "Clique para ver o detalhamento por gerente";
-        });
-
-        // Empilha as linhas do cabeçalho para a rolagem vertical não sobrepô-las
-        let topOffset = 0;
-        table.querySelectorAll("thead tr").forEach(tr => {
-          tr.querySelectorAll("th").forEach(th => { th.style.top = topOffset + "px"; });
-          topOffset += tr.getBoundingClientRect().height;
         });
       }, 100);
     }
