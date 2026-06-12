@@ -32,10 +32,13 @@ var CONFIG = {
   // script usa o arquivo mais recente dentro dela (ex.: exportações do Qlik)
   CSV_FILE_ID: '1XoQamjbYeu0xdIDpj-Y9X4ngqGrCE4Ku',
   // Quando o ID acima é de uma pasta, considera apenas arquivos cujo nome
-  // contém este texto (deixe '' para considerar todos). Ex.: '.csv'
-  FILTRO_NOME: '',
+  // contém este texto (deixe '' para considerar todos)
+  FILTRO_NOME: 'basecontascorrente.csv',
   // Codificação preferida do arquivo CSV ('UTF-8' ou 'ISO-8859-1')
   ENCODING: 'UTF-8',
+  // ID da planilha base já criada (evita criar outra se a propriedade do
+  // script for perdida). Deixe '' para criar automaticamente.
+  PLANILHA_BASE_ID_FIXO: '1UD_BwSikX4Qdb2QFPTLnxhmEKi0j7wLtfxiPPl7H1EM',
   // Nome da planilha base criada automaticamente
   NOME_PLANILHA_BASE: 'Power Pivot - Base de Agências (Automática)',
   // Nome da aba dentro da planilha base
@@ -233,15 +236,46 @@ function diagnosticarArquivo() {
 }
 
 /**
+ * Entrega a base ao dashboard (chamada pelo front-end via google.script.run).
+ * Devolve uma matriz: primeira linha é o cabeçalho (Conta, Nome Agência,
+ * Gerente de Contas) e as demais são os registros. Se a planilha base ainda
+ * não foi gerada, atualiza na hora a partir do CSV.
+ *
+ * IMPORTANTE: este arquivo deve estar no MESMO projeto Apps Script que o
+ * index.html do dashboard para que a chamada funcione.
+ */
+function getBaseAgencias() {
+  var aba = obterPlanilhaBase().getSheetByName(CONFIG.NOME_ABA);
+  if (!aba || aba.getLastRow() < 2) {
+    atualizarBase();
+    aba = obterPlanilhaBase().getSheetByName(CONFIG.NOME_ABA);
+  }
+  return aba.getDataRange().getDisplayValues();
+}
+
+/**
+ * Senha da área administrativa do dashboard. Fica apenas no servidor — o
+ * HTML chama verificarSenhaAdmin() via google.script.run, então a senha não
+ * é exposta no código enviado ao navegador.
+ */
+var ADMIN_SENHA = 'Deixaeuver';
+
+function verificarSenhaAdmin(senha) {
+  return String(senha) === ADMIN_SENHA;
+}
+
+/**
  * Retorna a planilha base, criando-a na primeira execução e guardando o ID
  * nas propriedades do script para reutilizar nas execuções seguintes.
  */
 function obterPlanilhaBase() {
   var props = PropertiesService.getScriptProperties();
-  var id = props.getProperty('PLANILHA_BASE_ID');
+  var id = props.getProperty('PLANILHA_BASE_ID') || CONFIG.PLANILHA_BASE_ID_FIXO;
   if (id) {
     try {
-      return SpreadsheetApp.openById(id);
+      var existente = SpreadsheetApp.openById(id);
+      props.setProperty('PLANILHA_BASE_ID', existente.getId());
+      return existente;
     } catch (e) {
       // Planilha foi excluída — cria outra abaixo
     }
