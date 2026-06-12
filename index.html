@@ -1488,6 +1488,7 @@
           renderPivotTableOnly(window.currentExpandedData);
           updateRankings();
           updateManagerPerformance();
+          updateDetailsTable();
         }
       });
     }
@@ -3185,7 +3186,10 @@
 
       const filtered = window.currentEnrichedData.filter(r => {
         if (r["Modalidade"] === "SEM MOVIMENTO") return false;
-        
+
+        // Respeita o filtro de modalidades aplicado na Tabela Dinâmica
+        if (window.selectedModalities.size > 0 && !window.selectedModalities.has(r["Modalidade"])) return false;
+
         let passAgencia = true;
         let passGerente = true;
 
