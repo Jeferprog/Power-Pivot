@@ -5,12 +5,14 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Excel Pivot Pro - Liberações</title>
+  <title>Cresol Cooperar - Controle de Liberações</title>
 
-  <!-- Google Fonts: Roboto -->
+  <!-- Google Fonts: Inter + Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -35,11 +37,11 @@
     :root {
       --primary-green: #005c46;
       --accent-orange: #f58220;
-      --bg-body: #f8f9fa;
+      --bg-body: #f7f9fb;
       --bg-card: #ffffff;
-      --text-dark: #212529;
+      --text-dark: #191c1e;
       --text-gray: #6c757d;
-      --border-gray: #dee2e6;
+      --border-gray: #e0e3e5;
       --success-green: #28a745;
       --danger-red: #dc3545;
       --info-blue: #0d6efd;
@@ -48,9 +50,33 @@
 
     body {
       background-color: var(--bg-body);
-      font-family: 'Roboto', sans-serif;
+      font-family: 'Inter', sans-serif;
       color: var(--text-dark);
       line-height: 1.6;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+    }
+
+    /* Barra de rolagem discreta */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #bec9c3;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #6f7974;
     }
 
     h1,
@@ -100,14 +126,12 @@
       white-space: nowrap;
     }
 
-    /* Cabeçalho Verde Institucional */
+    /* Cabeçalho claro (novo design) */
     table.pvtTable thead tr th {
-      background-color: var(--primary-green) !important;
-      color: white !important;
-      padding: 8px 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      background-color: #f2f4f6 !important;
+      color: var(--text-dark) !important;
+      padding: 10px 14px;
+      font-weight: 600;
       position: sticky;
       top: 0;
       z-index: 100;
@@ -165,7 +189,8 @@
 
     /* Subcabeçalho (linha das métricas) em tom mais claro e discreto */
     table.pvtTable thead tr:nth-child(2) th.pvtColLabel {
-      background-color: #0e7c63 !important;
+      background-color: #e6e8ea !important;
+      color: var(--text-gray) !important;
       font-size: 11px;
       font-weight: 600;
       text-transform: none;
@@ -232,10 +257,16 @@
     /* Cards */
     .card-custom {
       background: var(--bg-card);
-      border-radius: var(--border-radius);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      border-radius: 12px;
+      border: 1px solid var(--border-gray);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       border-left: 4px solid var(--accent-orange);
       padding: 24px;
+      transition: box-shadow 0.2s;
+    }
+
+    .card-custom:hover {
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
     }
 
     .card-success {
@@ -322,20 +353,29 @@
       justify-content: center;
     }
 
-    /* Tabs */
+    /* Navegação lateral */
     .tab-btn {
-      padding: 12px 24px;
-      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      text-align: left;
+      padding: 10px 16px;
+      font-weight: 500;
       font-size: 14px;
       color: var(--text-gray);
-      border-bottom: 3px solid transparent;
-      transition: all 0.2s;
+      border-radius: 10px;
+      transition: all 0.15s;
+    }
+
+    .tab-btn:hover {
+      background-color: #e6e8ea;
     }
 
     .tab-btn.active {
-      color: var(--primary-green);
-      border-bottom-color: var(--primary-green);
-      background-color: #f0fdf4;
+      background-color: var(--primary-green);
+      color: #ffffff;
+      font-weight: 700;
     }
 
     /* Modal Gerentes */
@@ -378,7 +418,7 @@
   </style>
 </head>
 
-<body class="p-4 md:p-8">
+<body>
 
   <div id="loading" class="loading-overlay">
     <div class="bg-white p-8 rounded-xl shadow-2xl text-center max-w-xs w-full border-l-8 border-[#f58220]">
@@ -389,136 +429,97 @@
     </div>
   </div>
 
-  <div class="max-w-[1250px] mx-auto space-y-8">
-    <!-- Header Institucional -->
+  <!-- Navegação Lateral -->
+  <aside class="flex flex-col fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 z-50">
+    <div class="p-5 flex items-center gap-3 border-b border-gray-100">
+      <div class="bg-[#005c46] p-2.5 rounded-xl text-white shadow">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+          <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+          <path d="M8 13h2" />
+          <path d="M14 13h2" />
+          <path d="M8 17h2" />
+          <path d="M14 17h2" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-base font-extrabold tracking-tight text-[#005c46] leading-tight">Cresol Cooperar</h1>
+        <p class="text-[11px] text-gray-500">Controle de Liberações</p>
+      </div>
+    </div>
+
+    <nav id="tabsNav" class="hidden flex-1 px-3 py-5 flex flex-col gap-1.5 overflow-y-auto">
+      <button id="tabPivot" class="tab-btn active">
+        <span class="material-symbols-outlined text-[20px]">pivot_table_chart</span>
+        Tabela Dinâmica
+      </button>
+      <button id="tabRankings" class="tab-btn hidden">
+        <span class="material-symbols-outlined text-[20px]">leaderboard</span>
+        Dashboard de Rankings
+      </button>
+      <button id="tabManagers" class="tab-btn hidden">
+        <span class="material-symbols-outlined text-[20px]">monitoring</span>
+        Desempenho por Gerente
+      </button>
+      <button id="tabDetails" class="tab-btn">
+        <span class="material-symbols-outlined text-[20px]">list_alt</span>
+        Detalhamento de Operações
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-gray-100 flex flex-col gap-2 mt-auto">
+      <button id="adminBtn"
+        class="w-full flex items-center justify-center gap-2 bg-[#f58220] text-white px-4 py-2.5 rounded-lg text-xs font-bold hover:opacity-90 transition-opacity">
+        <span class="material-symbols-outlined text-base">admin_panel_settings</span>
+        <span id="adminBtnLabel">Admin</span>
+      </button>
+      <p class="text-[10px] text-gray-400 text-center">Última atualização: <span id="lastUpdate">--/--/----</span></p>
+    </div>
+  </aside>
+
+  <!-- Conteúdo Principal -->
+  <main class="ml-64 p-4 md:p-6 space-y-6">
+    <!-- Barra Superior -->
     <header
-      class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white p-8 rounded-xl shadow-sm border-b border-gray-100">
-      <div class="flex items-center gap-5">
-        <div class="bg-[#005c46] p-4 rounded-xl text-white shadow-lg">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-            <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-            <path d="M8 13h2" />
-            <path d="M14 13h2" />
-            <path d="M8 17h2" />
-            <path d="M14 17h2" />
-          </svg>
-        </div>
-        <div>
-          <div class="flex items-center gap-3">
-            <h1 class="text-3xl font-bold tracking-tight">Controle Liberações de Crédito</h1>
-            <span
-              class="bg-[#f58220] text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Cresol
-              Cooperar</span>
-          </div>
-          <p class="text-sm italic text-[#6c757d] mt-1">Última atualização: <span id="lastUpdate">--/--/----</span></p>
-        </div>
+      class="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white px-6 py-4 rounded-xl border border-gray-200 shadow-sm">
+      <div class="flex items-center gap-3">
+        <h2 id="pageTitle" class="text-xl font-bold text-[#005c46]">Controle de Liberações de Crédito</h2>
+        <span class="bg-[#f58220] text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Cresol
+          Cooperar</span>
       </div>
       <div class="flex items-center gap-3">
         <div class="relative" id="exportContainer" style="display: none;">
           <button id="exportBtn" class="btn-primary flex items-center gap-2 shadow-lg shadow-orange-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
+            <span class="material-symbols-outlined text-base">ios_share</span>
             Exportar Relatório
+            <span class="material-symbols-outlined text-base">expand_more</span>
           </button>
           <div id="exportDropdown"
-            class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 z-[2000] py-2">
+            class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 z-[2000] py-2 overflow-hidden">
             <button id="exportExcelBtn"
               class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <path d="M8 13h2" />
-                <path d="M14 13h2" />
-                <path d="M8 17h2" />
-                <path d="M14 17h2" />
-              </svg>
-              Excel
+              <span class="material-symbols-outlined text-base" style="color: #00513d">description</span>
+              Excel (.xlsx)
             </button>
             <button id="exportPdfBtn"
               class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
-              PDF
+              <span class="material-symbols-outlined text-base" style="color: #ba1a1a">picture_as_pdf</span>
+              PDF (.pdf)
             </button>
             <button id="exportJpegBtn"
               class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              JPEG
+              <span class="material-symbols-outlined text-base" style="color: #31394e">image</span>
+              Imagem (.jpeg)
             </button>
           </div>
         </div>
-        <button id="adminBtn" class="btn-secondary flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <span id="adminBtnLabel">Admin</span>
-        </button>
-        <button id="resetBtn" class="btn-secondary">
+        <button id="resetBtn" class="btn-secondary flex items-center gap-2">
+          <span class="material-symbols-outlined text-base">restart_alt</span>
           Reiniciar
         </button>
       </div>
     </header>
-
-    <!-- Navegação por Abas -->
-    <div id="tabsNav" class="hidden flex border-b border-gray-200 mb-6">
-      <button id="tabPivot" class="tab-btn active flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="18" height="18" x="3" y="3" rx="2" />
-          <path d="M3 9h18" />
-          <path d="M9 3v18" />
-        </svg>
-        Tabela Dinâmica
-      </button>
-      <button id="tabRankings" class="tab-btn hidden flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 3v18h18" />
-          <path d="m19 9-5 5-4-4-3 3" />
-        </svg>
-        Dashboard de Rankings
-      </button>
-      <button id="tabManagers" class="tab-btn hidden flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-        Desempenho por Gerente
-      </button>
-      <button id="tabDetails" class="tab-btn flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-        Detalhamento de Operações
-      </button>
-    </div>
 
     <!-- Stepper / Status -->
     <div id="stepper" class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -985,7 +986,7 @@
       <datalist id="agencias-datalist"></datalist>
       <datalist id="gerentes-datalist"></datalist>
     </div>
-  </div>
+  </main>
 
   <!-- Modal de Gerentes -->
   <div id="modalGerentes" class="modal-gerente">
@@ -1031,16 +1032,28 @@
 
   <!-- Modal da Área Administrativa -->
   <div id="adminModal"
-    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-[340px]">
-      <h3 class="text-lg font-bold mb-1">Área Administrativa</h3>
-      <p class="text-sm text-gray-500 mb-4">Digite a senha para liberar os recursos administrativos.</p>
-      <input type="password" id="adminPasswordInput" placeholder="Senha"
-        class="w-full text-sm border border-gray-300 rounded px-3 py-2">
-      <p id="adminPasswordError" class="text-xs text-red-500 mt-2 hidden">Senha incorreta.</p>
-      <div class="flex justify-end gap-2 mt-5">
-        <button id="adminCancelBtn" class="btn-secondary text-xs py-2 px-4">Cancelar</button>
-        <button id="adminEnterBtn" class="btn-primary text-xs py-2 px-4">Entrar</button>
+    style="display:none; position:fixed; inset:0; background:rgba(25,28,30,0.45); z-index:1000; align-items:center; justify-content:center; padding:16px; backdrop-filter: blur(2px);">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+      <div class="p-5 bg-[#005c46] text-white flex justify-between items-center">
+        <h3 class="font-bold">Autenticação Administrativa</h3>
+        <button id="adminCloseX" class="text-white/60 hover:text-white transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <p class="text-sm text-gray-500">Insira a senha para acessar os recursos administrativos e abas restritas.</p>
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Código de Acesso</label>
+          <input type="password" id="adminPasswordInput" placeholder="••••••••"
+            class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#005c46] focus:border-[#005c46] transition-all">
+          <p id="adminPasswordError" class="text-xs text-red-500 hidden">Senha incorreta.</p>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button id="adminCancelBtn"
+            class="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
+          <button id="adminEnterBtn"
+            class="flex-1 py-2 bg-[#f58220] text-white rounded-lg text-sm font-bold hover:opacity-90 transition-opacity">Entrar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1229,6 +1242,7 @@
     });
     adminEnterBtn.addEventListener('click', tentarEntrarAdmin);
     adminCancelBtn.addEventListener('click', fecharAdminModal);
+    document.getElementById('adminCloseX').addEventListener('click', fecharAdminModal);
     adminPasswordInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') tentarEntrarAdmin();
       if (e.key === 'Escape') fecharAdminModal();
@@ -1369,6 +1383,11 @@
     });
 
     // Eventos de Abas
+    function setPageTitle(t) {
+      const el = document.getElementById('pageTitle');
+      if (el) el.innerText = t;
+    }
+
     tabPivot.addEventListener('click', () => {
       tabPivot.classList.add('active');
       tabRankings.classList.remove('active');
@@ -1378,6 +1397,7 @@
       rankingsContainer.classList.add('hidden');
       managerPerformanceContainer.classList.add('hidden');
       detailsContainer.classList.add('hidden');
+      setPageTitle('Tabela Dinâmica');
     });
 
     tabRankings.addEventListener('click', () => {
@@ -1389,6 +1409,7 @@
       pivotWrapper.classList.add('hidden');
       managerPerformanceContainer.classList.add('hidden');
       detailsContainer.classList.add('hidden');
+      setPageTitle('Dashboard de Rankings');
       updateRankings();
     });
 
@@ -1401,6 +1422,7 @@
       pivotWrapper.classList.add('hidden');
       rankingsContainer.classList.add('hidden');
       detailsContainer.classList.add('hidden');
+      setPageTitle('Desempenho por Gerente');
       updateManagerPerformance();
     });
 
@@ -1413,6 +1435,7 @@
       pivotWrapper.classList.add('hidden');
       rankingsContainer.classList.add('hidden');
       managerPerformanceContainer.classList.add('hidden');
+      setPageTitle('Detalhamento de Operações');
       updateDetailsTable();
     });
 
