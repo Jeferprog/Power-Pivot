@@ -254,6 +254,17 @@ function getBaseAgencias() {
 }
 
 /**
+ * Senha da área administrativa do dashboard. Fica apenas no servidor — o
+ * HTML chama verificarSenhaAdmin() via google.script.run, então a senha não
+ * é exposta no código enviado ao navegador.
+ */
+var ADMIN_SENHA = 'Deixaeuver';
+
+function verificarSenhaAdmin(senha) {
+  return String(senha) === ADMIN_SENHA;
+}
+
+/**
  * Retorna a planilha base, criando-a na primeira execução e guardando o ID
  * nas propriedades do script para reutilizar nas execuções seguintes.
  */

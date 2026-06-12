@@ -418,6 +418,14 @@
             </button>
           </div>
         </div>
+        <button id="adminBtn" class="btn-secondary flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span id="adminBtnLabel">Admin</span>
+        </button>
         <button id="resetBtn" class="btn-secondary">
           Reiniciar
         </button>
@@ -435,7 +443,7 @@
         </svg>
         Tabela Dinâmica
       </button>
-      <button id="tabRankings" class="tab-btn flex items-center gap-2">
+      <button id="tabRankings" class="tab-btn hidden flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 3v18h18" />
@@ -443,7 +451,7 @@
         </svg>
         Dashboard de Rankings
       </button>
-      <button id="tabManagers" class="tab-btn flex items-center gap-2">
+      <button id="tabManagers" class="tab-btn hidden flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -481,7 +489,7 @@
             </svg>
           </div>
         </div>
-        <div class="mt-4 flex flex-col gap-2">
+        <div id="adminBaseControls" class="mt-4 flex flex-col gap-2 hidden">
           <div class="flex gap-2">
             <label class="btn-secondary text-xs cursor-pointer py-2 px-4">
               <input type="file" id="agenciasInput" accept=".xlsx, .xls, .csv" class="hidden">
@@ -972,6 +980,22 @@
     </div>
   </div>
 
+  <!-- Modal da Área Administrativa -->
+  <div id="adminModal"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-[340px]">
+      <h3 class="text-lg font-bold mb-1">Área Administrativa</h3>
+      <p class="text-sm text-gray-500 mb-4">Digite a senha para liberar os recursos administrativos.</p>
+      <input type="password" id="adminPasswordInput" placeholder="Senha"
+        class="w-full text-sm border border-gray-300 rounded px-3 py-2">
+      <p id="adminPasswordError" class="text-xs text-red-500 mt-2 hidden">Senha incorreta.</p>
+      <div class="flex justify-end gap-2 mt-5">
+        <button id="adminCancelBtn" class="btn-secondary text-xs py-2 px-4">Cancelar</button>
+        <button id="adminEnterBtn" class="btn-primary text-xs py-2 px-4">Entrar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let agenciasMap = new Map();
     const agenciasInput = document.getElementById('agenciasInput');
@@ -1070,10 +1094,105 @@
     window.mgrSelectedDates = new Set(); // Datas selecionadas para o dashboard gerentes
     window.gerentesExcecao = []; // Lista de exceções
 
+    // ============================================================
+    // Área Administrativa (recursos liberados por senha)
+    // ============================================================
+    const adminBtn = document.getElementById('adminBtn');
+    const adminBtnLabel = document.getElementById('adminBtnLabel');
+    const adminModal = document.getElementById('adminModal');
+    const adminPasswordInput = document.getElementById('adminPasswordInput');
+    const adminPasswordError = document.getElementById('adminPasswordError');
+    const adminCancelBtn = document.getElementById('adminCancelBtn');
+    const adminEnterBtn = document.getElementById('adminEnterBtn');
+    // Hash (FNV-1a) da senha — usado apenas como alternativa quando o
+    // servidor do Apps Script (verificarSenhaAdmin) não está disponível
+    const ADMIN_SENHA_HASH = '29998ba9';
+
+    function hashSenha(s) {
+      let h = 0x811c9dc5;
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 0x01000193) >>> 0;
+      }
+      return h.toString(16);
+    }
+
+    function isAdmin() {
+      return sessionStorage.getItem('admin_mode') === '1';
+    }
+
+    function applyAdminUI() {
+      const admin = isAdmin();
+      document.getElementById('adminBaseControls').classList.toggle('hidden', !admin);
+      tabRankings.classList.toggle('hidden', !admin);
+      tabManagers.classList.toggle('hidden', !admin);
+      adminBtnLabel.innerText = admin ? 'Sair do Admin' : 'Admin';
+
+      // Se saiu do admin com uma aba restrita aberta, volta para a Tabela Dinâmica
+      if (!admin && (tabRankings.classList.contains('active') || tabManagers.classList.contains('active'))) {
+        tabPivot.click();
+      }
+    }
+
+    function verificarSenha(senha) {
+      return new Promise(function (resolve) {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(function (ok) { resolve(!!ok); })
+            .withFailureHandler(function () { resolve(hashSenha(senha) === ADMIN_SENHA_HASH); })
+            .verificarSenhaAdmin(senha);
+        } else {
+          resolve(hashSenha(senha) === ADMIN_SENHA_HASH);
+        }
+      });
+    }
+
+    function abrirAdminModal() {
+      adminPasswordInput.value = '';
+      adminPasswordError.classList.add('hidden');
+      adminModal.style.display = 'flex';
+      setTimeout(() => adminPasswordInput.focus(), 50);
+    }
+
+    function fecharAdminModal() {
+      adminModal.style.display = 'none';
+    }
+
+    async function tentarEntrarAdmin() {
+      const ok = await verificarSenha(adminPasswordInput.value);
+      if (ok) {
+        sessionStorage.setItem('admin_mode', '1');
+        fecharAdminModal();
+        applyAdminUI();
+      } else {
+        adminPasswordError.classList.remove('hidden');
+        adminPasswordInput.select();
+      }
+    }
+
+    adminBtn.addEventListener('click', () => {
+      if (isAdmin()) {
+        sessionStorage.removeItem('admin_mode');
+        applyAdminUI();
+      } else {
+        abrirAdminModal();
+      }
+    });
+    adminEnterBtn.addEventListener('click', tentarEntrarAdmin);
+    adminCancelBtn.addEventListener('click', fecharAdminModal);
+    adminPasswordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') tentarEntrarAdmin();
+      if (e.key === 'Escape') fecharAdminModal();
+    });
+    adminModal.addEventListener('click', (e) => {
+      if (e.target === adminModal) fecharAdminModal();
+    });
+
     // Inicialização
     window.onload = () => {
       document.getElementById('lastUpdate').innerText = new Date().toLocaleDateString('pt-BR');
       loadAgenciasFromStorage();
+      applyAdminUI();
 
       // Atualização automática da base via Google Drive. Limpa a configuração
       // antiga que apontava para a pasta da base (não funciona para leitura
