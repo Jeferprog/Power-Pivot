@@ -1024,8 +1024,8 @@
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h3 class="text-lg font-bold text-[#005c46]">Acumulado por Gerente</h3>
-            <p class="text-sm text-gray-500">Cada coluna mostra o valor acumulado até aquela data, respeitando o
-              filtro de modalidades.</p>
+            <p class="text-sm text-gray-500">Valor liberado por dia e o total acumulado de cada gerente no período,
+              respeitando o filtro de modalidades.</p>
           </div>
           <div class="relative">
             <button id="acumModalityFilterBtn" class="btn-secondary flex items-center gap-2 bg-white">
@@ -2663,21 +2663,20 @@
         return;
       }
 
-      // Monta as linhas com o acumulado (running total) e o total final por gerente
+      // Para cada gerente: valor liberado por dia (diarias), a curva acumulada
+      // (para o gráfico) e o total acumulado no período (total)
       const linhas = Array.from(porGerente.entries()).map(([ger, mapaDatas]) => {
-        let acumulado = 0;
-        const celulas = datas.map(d => {
-          acumulado += (mapaDatas.get(d) || 0);
-          return acumulado;
-        });
-        return { ger, celulas, total: acumulado };
+        const diarias = datas.map(d => mapaDatas.get(d) || 0);
+        let acc = 0;
+        const acumuladas = diarias.map(v => (acc += v));
+        return { ger, diarias, acumuladas, total: acc };
       }).filter(l => l.total > 0)
         .sort((a, b) => b.total - a.total);
 
-      // Totais por coluna (acumulado geral)
-      const totaisColuna = datas.map((_, i) => linhas.reduce((s, l) => s + l.celulas[i], 0));
-      const totalGeral = totaisColuna.length ? totaisColuna[totaisColuna.length - 1] : 0;
-      const maxTotal = linhas[0].total; // maior acumulado (linhas já ordenadas)
+      // Totais por coluna (soma do dia entre todos os gerentes) e total geral do período
+      const totaisColuna = datas.map((_, i) => linhas.reduce((s, l) => s + l.diarias[i], 0));
+      const totalGeral = linhas.reduce((s, l) => s + l.total, 0);
+      const maxTotal = linhas[0].total; // maior acumulado no período (linhas já ordenadas)
 
       const compactCurrency = (v) => {
         const abs = Math.abs(v);
@@ -2711,10 +2710,10 @@
         `).join('');
       }
 
-      // ---------- Gráfico de evolução (SVG, top 5) ----------
-      renderAccumulatedChart(datas, linhas.slice(0, 5));
+      // ---------- Gráfico de evolução acumulada (SVG, top 5) ----------
+      renderAccumulatedChart(datas, linhas.slice(0, 5).map(l => ({ ger: l.ger, celulas: l.acumuladas, total: l.total })));
 
-      // ---------- Tabela enriquecida ----------
+      // ---------- Tabela: liberado por dia + Acumulado no Período ----------
       const medalha = ['🥇', '🥈', '🥉'];
       const thDatas = datas.map(d => `<th class="p-3 font-bold text-right whitespace-nowrap">${d}</th>`).join('');
 
@@ -2734,7 +2733,8 @@
               </div>
             </div>
           </td>
-          ${l.celulas.map((v, i) => `<td class="p-3 text-right font-mono ${i === l.celulas.length - 1 ? 'font-bold text-green-700' : 'text-gray-500'}">${formatCurrency(v)}</td>`).join('')}
+          ${l.diarias.map(v => `<td class="p-3 text-right font-mono ${v > 0 ? 'text-gray-600' : 'text-gray-300'}">${formatCurrency(v)}</td>`).join('')}
+          <td class="p-3 text-right font-mono font-bold text-green-700 bg-green-50 border-l-2 border-green-200 whitespace-nowrap">${formatCurrency(l.total)}</td>
         </tr>
       `;
       }).join('');
@@ -2743,6 +2743,7 @@
         <tr class="bg-[#e7f5ef] font-bold text-[#005c46]">
           <td class="p-3 sticky left-0 bg-[#e7f5ef] z-10 border-r border-gray-200">Total Geral</td>
           ${totaisColuna.map((v) => `<td class="p-3 text-right font-mono">${formatCurrency(v)}</td>`).join('')}
+          <td class="p-3 text-right font-mono bg-[#d5efe4] border-l-2 border-green-300 whitespace-nowrap">${formatCurrency(totalGeral)}</td>
         </tr>
       `;
 
@@ -2752,6 +2753,7 @@
             <tr>
               <th class="p-3 font-bold sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Gerente</th>
               ${thDatas}
+              <th class="p-3 font-bold text-right bg-green-50 border-l-2 border-green-200 whitespace-nowrap">Acumulado no Período</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
