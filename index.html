@@ -2734,7 +2734,7 @@
             </div>
           </td>
           ${l.diarias.map(v => `<td class="p-3 text-right font-mono ${v > 0 ? 'text-gray-600' : 'text-gray-300'}">${formatCurrency(v)}</td>`).join('')}
-          <td class="p-3 text-right font-mono font-bold text-green-700 bg-green-50 border-l-2 border-green-200 whitespace-nowrap">${formatCurrency(l.total)}</td>
+          <td class="p-3 text-right font-mono font-bold text-green-700 bg-green-50 border-l-2 border-green-200 whitespace-nowrap sticky right-0 z-10">${formatCurrency(l.total)}</td>
         </tr>
       `;
       }).join('');
@@ -2743,7 +2743,7 @@
         <tr class="bg-[#e7f5ef] font-bold text-[#005c46]">
           <td class="p-3 sticky left-0 bg-[#e7f5ef] z-10 border-r border-gray-200">Total Geral</td>
           ${totaisColuna.map((v) => `<td class="p-3 text-right font-mono">${formatCurrency(v)}</td>`).join('')}
-          <td class="p-3 text-right font-mono bg-[#d5efe4] border-l-2 border-green-300 whitespace-nowrap">${formatCurrency(totalGeral)}</td>
+          <td class="p-3 text-right font-mono bg-[#d5efe4] border-l-2 border-green-300 whitespace-nowrap sticky right-0 z-10">${formatCurrency(totalGeral)}</td>
         </tr>
       `;
 
@@ -2753,7 +2753,7 @@
             <tr>
               <th class="p-3 font-bold sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Gerente</th>
               ${thDatas}
-              <th class="p-3 font-bold text-right bg-green-50 border-l-2 border-green-200 whitespace-nowrap">Acumulado no Período</th>
+              <th class="p-3 font-bold text-right bg-green-50 border-l-2 border-green-200 whitespace-nowrap sticky right-0 z-30">Acumulado no Período</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
