@@ -449,6 +449,10 @@
         <span class="material-symbols-outlined text-[20px]">monitoring</span>
         Desempenho por Gerente
       </button>
+      <button id="tabAccumulated" class="tab-btn hidden">
+        <span class="material-symbols-outlined text-[20px]">stacked_line_chart</span>
+        Acumulado por Gerente
+      </button>
       <button id="tabDetails" class="tab-btn">
         <span class="material-symbols-outlined text-[20px]">list_alt</span>
         Detalhamento de Operações
@@ -951,6 +955,50 @@
       </div>
     </div>
 
+    <!-- Acumulado por Gerente -->
+    <div id="accumulatedContainer" class="hidden space-y-8">
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 class="text-lg font-bold text-[#005c46]">Acumulado por Gerente</h3>
+            <p class="text-sm text-gray-500">Cada coluna mostra o valor acumulado até aquela data, respeitando o
+              filtro de modalidades.</p>
+          </div>
+          <div class="relative">
+            <button id="acumModalityFilterBtn" class="btn-secondary flex items-center gap-2 bg-white">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+              </svg>
+              Filtrar Modalidade (<span id="acumSelectedModalitiesCount">Todas</span>)
+            </button>
+            <div id="acumModalityFilterDropdown"
+              class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-[2000] p-4">
+              <div class="flex justify-between items-center mb-3">
+                <h4 class="font-bold text-sm text-gray-700">Selecione as Modalidades</h4>
+                <div class="flex gap-2">
+                  <button id="acumSelectAllModalities" class="text-xs text-blue-600 hover:underline">Todas</button>
+                  <button id="acumClearAllModalities" class="text-xs text-gray-500 hover:underline">Nenhuma</button>
+                </div>
+              </div>
+              <input type="text" id="acumModalitySearch" placeholder="Buscar modalidade..."
+                class="w-full text-sm border border-gray-300 rounded-md px-3 py-2 mb-3 focus:outline-none focus:ring-1 focus:ring-green-500">
+              <div id="acumModalityList" class="max-h-60 overflow-y-auto space-y-2 text-sm">
+                <!-- Checkboxes serão injetados aqui -->
+              </div>
+              <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                <button id="acumApplyModalityFilterBtn" class="btn-primary !py-1.5 !px-4 text-sm">Aplicar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="accumulatedTableContainer" class="overflow-x-auto border border-gray-200 rounded-lg">
+          <!-- Tabela injetada via JS -->
+        </div>
+      </div>
+    </div>
+
     <!-- Unmapped Agencies Container -->
     <div id="unmappedContainer" class="hidden bg-white rounded-xl shadow-lg border border-red-200 p-6 mt-8">
       <div class="flex items-center gap-3 mb-4">
@@ -1130,10 +1178,12 @@
     const tabRankings = document.getElementById('tabRankings');
     const tabManagers = document.getElementById('tabManagers');
     const tabDetails = document.getElementById('tabDetails');
+    const tabAccumulated = document.getElementById('tabAccumulated');
     const pivotWrapper = document.getElementById('pivotWrapper');
     const rankingsContainer = document.getElementById('rankingsContainer');
     const managerPerformanceContainer = document.getElementById('managerPerformanceContainer');
     const detailsContainer = document.getElementById('detailsContainer');
+    const accumulatedContainer = document.getElementById('accumulatedContainer');
     const tabsNav = document.getElementById('tabsNav');
 
     // Filtros Rankings
@@ -1204,10 +1254,12 @@
       document.getElementById('adminBaseControls').classList.toggle('hidden', !admin);
       tabRankings.classList.toggle('hidden', !admin);
       tabManagers.classList.toggle('hidden', !admin);
+      tabAccumulated.classList.toggle('hidden', !admin);
       adminBtnLabel.innerText = admin ? 'Sair do Admin' : 'Admin';
 
       // Se saiu do admin com uma aba restrita aberta, volta para a Tabela Dinâmica
-      if (!admin && (tabRankings.classList.contains('active') || tabManagers.classList.contains('active'))) {
+      if (!admin && (tabRankings.classList.contains('active') || tabManagers.classList.contains('active')
+        || tabAccumulated.classList.contains('active'))) {
         tabPivot.click();
       }
     }
@@ -1333,6 +1385,7 @@
       document.getElementById('rankingsContainer').classList.add('hidden');
       document.getElementById('managerPerformanceContainer').classList.add('hidden');
       document.getElementById('detailsContainer').classList.add('hidden');
+      document.getElementById('accumulatedContainer').classList.add('hidden');
       document.getElementById('tabsNav').classList.add('hidden');
       document.getElementById('unmappedContainer').classList.add('hidden');
       exportContainer.style.display = 'none';
@@ -1355,6 +1408,7 @@
       if (tabPivot.classList.contains('active')) exportPivotToExcel();
       else if (tabRankings.classList.contains('active')) exportRankingsToExcel();
       else if (tabManagers.classList.contains('active')) exportManagerPerformanceToExcel();
+      else if (tabAccumulated.classList.contains('active')) exportAccumulatedToExcel();
     });
 
     exportPdfBtn.addEventListener('click', () => {
@@ -1362,6 +1416,7 @@
       if (tabPivot.classList.contains('active')) exportPivotToPdf();
       else if (tabRankings.classList.contains('active')) exportRankingsToPdf();
       else if (tabManagers.classList.contains('active')) exportManagerPerformanceToPdf();
+      else if (tabAccumulated.classList.contains('active')) exportAccumulatedToPdf();
     });
 
     exportJpegBtn.addEventListener('click', () => {
@@ -1370,6 +1425,7 @@
       if (tabPivot.classList.contains('active')) exportToJpeg('pivotWrapper', `Tabela_Dinamica_${dataAtual}`);
       else if (tabRankings.classList.contains('active')) exportToJpeg('rankingsContainer', `Dashboard_Rankings_${dataAtual}`);
       else if (tabManagers.classList.contains('active')) exportToJpeg('managerPerformanceContainer', `Desempenho_Gerentes_${dataAtual}`);
+      else if (tabAccumulated.classList.contains('active')) exportToJpeg('accumulatedContainer', `Acumulado_Gerentes_${dataAtual}`);
     });
 
     clearAgenciasBtn.addEventListener('click', () => {
@@ -1404,53 +1460,47 @@
       if (el) el.innerText = t;
     }
 
+    function desativarTodasAbas() {
+      [tabPivot, tabRankings, tabManagers, tabDetails, tabAccumulated].forEach(t => t.classList.remove('active'));
+      [pivotWrapper, rankingsContainer, managerPerformanceContainer, detailsContainer, accumulatedContainer]
+        .forEach(c => c.classList.add('hidden'));
+    }
+
     tabPivot.addEventListener('click', () => {
+      desativarTodasAbas();
       tabPivot.classList.add('active');
-      tabRankings.classList.remove('active');
-      tabManagers.classList.remove('active');
-      tabDetails.classList.remove('active');
       pivotWrapper.classList.remove('hidden');
-      rankingsContainer.classList.add('hidden');
-      managerPerformanceContainer.classList.add('hidden');
-      detailsContainer.classList.add('hidden');
       setPageTitle('Tabela Dinâmica');
     });
 
     tabRankings.addEventListener('click', () => {
+      desativarTodasAbas();
       tabRankings.classList.add('active');
-      tabPivot.classList.remove('active');
-      tabManagers.classList.remove('active');
-      tabDetails.classList.remove('active');
       rankingsContainer.classList.remove('hidden');
-      pivotWrapper.classList.add('hidden');
-      managerPerformanceContainer.classList.add('hidden');
-      detailsContainer.classList.add('hidden');
       setPageTitle('Dashboard de Rankings');
       updateRankings();
     });
 
     tabManagers.addEventListener('click', () => {
+      desativarTodasAbas();
       tabManagers.classList.add('active');
-      tabPivot.classList.remove('active');
-      tabRankings.classList.remove('active');
-      tabDetails.classList.remove('active');
       managerPerformanceContainer.classList.remove('hidden');
-      pivotWrapper.classList.add('hidden');
-      rankingsContainer.classList.add('hidden');
-      detailsContainer.classList.add('hidden');
       setPageTitle('Desempenho por Gerente');
       updateManagerPerformance();
     });
 
+    tabAccumulated.addEventListener('click', () => {
+      desativarTodasAbas();
+      tabAccumulated.classList.add('active');
+      accumulatedContainer.classList.remove('hidden');
+      setPageTitle('Acumulado por Gerente');
+      updateAccumulated();
+    });
+
     tabDetails.addEventListener('click', () => {
+      desativarTodasAbas();
       tabDetails.classList.add('active');
-      tabPivot.classList.remove('active');
-      tabRankings.classList.remove('active');
-      tabManagers.classList.remove('active');
       detailsContainer.classList.remove('hidden');
-      pivotWrapper.classList.add('hidden');
-      rankingsContainer.classList.add('hidden');
-      managerPerformanceContainer.classList.add('hidden');
       setPageTitle('Detalhamento de Operações');
       updateDetailsTable();
     });
@@ -1560,7 +1610,8 @@
           document.getElementById('modalityList'),
           document.getElementById('rankingsModalityList'),
           document.getElementById('mgrModalityList'),
-          document.getElementById('detailsModalityList')
+          document.getElementById('detailsModalityList'),
+          document.getElementById('acumModalityList')
         ];
         allLists.forEach(l => {
           if (l && l !== list) {
@@ -1578,6 +1629,7 @@
           updateRankings();
           updateManagerPerformance();
           updateDetailsTable();
+          updateAccumulated();
         }
       });
     }
@@ -1586,6 +1638,7 @@
     setupModalityFilter('rankingsModalityFilterBtn', 'rankingsModalityFilterDropdown', 'rankingsModalitySearch', 'rankingsModalityList', 'rankingsSelectAllModalities', 'rankingsClearAllModalities', 'rankingsApplyModalityFilterBtn');
     setupModalityFilter('mgrModalityFilterBtn', 'mgrModalityFilterDropdown', 'mgrModalitySearch', 'mgrModalityList', 'mgrSelectAllModalities', 'mgrClearAllModalities', 'mgrApplyModalityFilterBtn');
     setupModalityFilter('detailsModalityFilterBtn', 'detailsModalityFilterDropdown', 'detailsModalitySearch', 'detailsModalityList', 'detailsSelectAllModalities', 'detailsClearAllModalities', 'detailsApplyModalityFilterBtn');
+    setupModalityFilter('acumModalityFilterBtn', 'acumModalityFilterDropdown', 'acumModalitySearch', 'acumModalityList', 'acumSelectAllModalities', 'acumClearAllModalities', 'acumApplyModalityFilterBtn');
 
     function updateModalityFilterCount() {
       const list = document.getElementById('modalityList');
@@ -1602,6 +1655,9 @@
 
       const dCount = document.getElementById('detailsSelectedModalitiesCount');
       if (dCount) dCount.innerText = text;
+
+      const aCount = document.getElementById('acumSelectedModalitiesCount');
+      if (aCount) aCount.innerText = text;
     }
 
     function populateCustomFilter(data) {
@@ -1638,6 +1694,9 @@
 
       const dList = document.getElementById('detailsModalityList');
       if (dList) dList.innerHTML = html;
+
+      const aList = document.getElementById('acumModalityList');
+      if (aList) aList.innerHTML = html;
 
       updateModalityFilterCount();
     }
@@ -2477,6 +2536,124 @@
           </tr>
         `;
       }).join('');
+    }
+
+    function updateAccumulated() {
+      const container = document.getElementById('accumulatedTableContainer');
+      if (!container) return;
+      if (!window.currentExpandedData) {
+        container.innerHTML = '<p class="p-8 text-center text-gray-500 italic">Importe as liberações para ver o acumulado.</p>';
+        return;
+      }
+
+      const formatCurrency = (val) => (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+      // Apenas valores, respeitando o filtro global de modalidades
+      const filteredData = window.currentExpandedData.filter(r =>
+        r["Métrica"] === "Soma Valor" &&
+        r["Modalidade"] !== "SEM MOVIMENTO" &&
+        window.selectedModalities.has(r["Modalidade"])
+      );
+
+      // Datas ordenadas cronologicamente (viram as colunas do acumulado)
+      const parseData = (s) => {
+        const [d, m, y] = String(s).split('/').map(Number);
+        return new Date(y, (m || 1) - 1, d || 1);
+      };
+      const datas = Array.from(new Set(filteredData
+        .map(r => r["Data Liberada"])
+        .filter(d => d && String(d).includes('/'))))
+        .sort((a, b) => parseData(a) - parseData(b));
+
+      // Soma por gerente e por data
+      const porGerente = new Map(); // gerente -> Map(data -> soma)
+      filteredData.forEach(r => {
+        const ger = r["Gerente"] || "NÃO INFORMADO";
+        const data = r["Data Liberada"];
+        if (!data || !String(data).includes('/')) return;
+        const val = parseFloat(r["Valor"]) || 0;
+        if (!porGerente.has(ger)) porGerente.set(ger, new Map());
+        const m = porGerente.get(ger);
+        m.set(data, (m.get(data) || 0) + val);
+      });
+
+      if (datas.length === 0 || porGerente.size === 0) {
+        container.innerHTML = '<p class="p-8 text-center text-gray-500 italic">Nenhuma operação encontrada com os filtros selecionados.</p>';
+        return;
+      }
+
+      // Monta as linhas com o acumulado (running total) e o total final por gerente
+      const linhas = Array.from(porGerente.entries()).map(([ger, mapaDatas]) => {
+        let acumulado = 0;
+        const celulas = datas.map(d => {
+          acumulado += (mapaDatas.get(d) || 0);
+          return acumulado;
+        });
+        return { ger, celulas, total: acumulado };
+      }).filter(l => l.total > 0)
+        .sort((a, b) => b.total - a.total);
+
+      // Totais por coluna (acumulado geral)
+      const totaisColuna = datas.map((_, i) => linhas.reduce((s, l) => s + l.celulas[i], 0));
+      const totalGeral = totaisColuna.length ? totaisColuna[totaisColuna.length - 1] : 0;
+
+      const thDatas = datas.map(d => `<th class="p-3 font-bold text-right whitespace-nowrap">${d}</th>`).join('');
+
+      const corpo = linhas.map(l => `
+        <tr class="hover:bg-gray-50">
+          <td class="p-3 font-medium text-gray-800 sticky left-0 bg-white z-10 border-r border-gray-200 whitespace-nowrap">${l.ger}</td>
+          ${l.celulas.map((v, i) => `<td class="p-3 text-right font-mono ${i === l.celulas.length - 1 ? 'font-bold text-green-700' : 'text-gray-600'}">${formatCurrency(v)}</td>`).join('')}
+        </tr>
+      `).join('');
+
+      const linhaTotais = `
+        <tr class="bg-[#e7f5ef] font-bold text-[#005c46]">
+          <td class="p-3 sticky left-0 bg-[#e7f5ef] z-10 border-r border-gray-200">Total Geral</td>
+          ${totaisColuna.map((v, i) => `<td class="p-3 text-right font-mono">${formatCurrency(v)}</td>`).join('')}
+        </tr>
+      `;
+
+      container.innerHTML = `
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 text-gray-600 border-b sticky top-0 z-20">
+            <tr>
+              <th class="p-3 font-bold sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Gerente</th>
+              ${thDatas}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            ${corpo}
+            ${linhaTotais}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function exportAccumulatedToExcel() {
+      const table = document.querySelector('#accumulatedTableContainer table');
+      if (!table) { alert("Gere o acumulado primeiro para exportar."); return; }
+      const wb = XLSX.utils.table_to_book(table, { sheet: "Acumulado", raw: true });
+      const dataStr = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+      XLSX.writeFile(wb, `Acumulado_Gerentes_${dataStr}.xlsx`);
+    }
+
+    function exportAccumulatedToPdf() {
+      const table = document.querySelector('#accumulatedTableContainer table');
+      if (!table) { alert("Gere o acumulado primeiro para exportar."); return; }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('l', 'pt', 'a4');
+      doc.setFontSize(14);
+      doc.setTextColor(0, 92, 70);
+      doc.text("Acumulado por Gerente", 40, 40);
+      doc.autoTable({
+        html: table,
+        startY: 55,
+        styles: { fontSize: 7, cellPadding: 3 },
+        headStyles: { fillColor: [0, 92, 70], textColor: 255 },
+        columnStyles: { 0: { cellWidth: 'auto', fontStyle: 'bold' } }
+      });
+      const dataStr = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+      doc.save(`Acumulado_Gerentes_${dataStr}.pdf`);
     }
 
     function updateRankings() {
