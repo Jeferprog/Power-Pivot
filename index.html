@@ -601,7 +601,7 @@
           </div>
           <p class="text-[10px] text-gray-400 italic mt-1">
             Campos esperados (CSV separado por ";"): <strong>conta</strong>, <strong>nm_agencia</strong> e
-            <strong>m_carteira_responsavel</strong>. Também aceita Excel com <strong>Conta</strong>,
+            <strong>nm_carteira_responsavel</strong>. Também aceita Excel com <strong>Conta</strong>,
             <strong>Nome Agência</strong> e <strong>Gerente de Contas</strong>.
           </p>
           <div class="mt-2 pt-3 border-t border-gray-200">
@@ -2174,8 +2174,8 @@
         const conta = norm["conta"];
         const agencia = norm["nome agência"] || norm["nome agencia"] || norm["nm_agencia"]
           || norm["agência"] || norm["agencia"];
-        const gerente = norm["gerente de contas"] || norm["gerente"] || norm["m_carteira_responsavel"]
-          || norm["nm_carteira_responsavel"] || norm["carteira responsável"] || norm["carteira responsavel"];
+        const gerente = norm["gerente de contas"] || norm["gerente"] || norm["nm_carteira_responsavel"]
+          || norm["m_carteira_responsavel"] || norm["carteira responsável"] || norm["carteira responsavel"];
         if (conta && (agencia || gerente)) {
           agenciasMap.set(normalizarConta(conta), {
             agencia: agencia || "NÃO INFORMADA",
@@ -2255,7 +2255,7 @@
           }
 
           if (processarLinhasAgencias(rows) === 0) {
-            alert("Nenhum registro encontrado. Verifique se o arquivo possui as colunas 'conta', 'nm_agencia' e 'm_carteira_responsavel' (CSV) ou 'Conta', 'Nome Agência' e 'Gerente de Contas' (Excel).");
+            alert("Nenhum registro encontrado. Verifique se o arquivo possui as colunas 'conta', 'nm_agencia' e 'nm_carteira_responsavel' (CSV) ou 'Conta', 'Nome Agência' e 'Gerente de Contas' (Excel).");
             loading.style.display = 'none';
             return;
           }
@@ -2375,7 +2375,7 @@
         }
 
         if (processarLinhasAgencias(rows) === 0) {
-          throw new Error("Nenhum registro válido encontrado. Verifique se o arquivo possui as colunas 'conta', 'nm_agencia' e 'm_carteira_responsavel' (ou 'Conta', 'Nome Agência' e 'Gerente de Contas').");
+          throw new Error("Nenhum registro válido encontrado. Verifique se o arquivo possui as colunas 'conta', 'nm_agencia' e 'nm_carteira_responsavel' (ou 'Conta', 'Nome Agência' e 'Gerente de Contas').");
         }
 
         localStorage.setItem('agencias_base', JSON.stringify(Array.from(agenciasMap.entries())));
