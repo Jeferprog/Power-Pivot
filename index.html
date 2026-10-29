@@ -2375,7 +2375,10 @@
         }
 
         if (processarLinhasAgencias(rows) === 0) {
-          throw new Error("Nenhum registro válido encontrado. Verifique se o arquivo possui as colunas 'conta', 'nm_agencia' e 'nm_carteira_responsavel' (ou 'Conta', 'Nome Agência' e 'Gerente de Contas').");
+          const colunas = (rows && rows.length) ? Object.keys(rows[0]).join(', ') : '(nenhuma linha recebida)';
+          throw new Error("Nenhum registro válido encontrado. Colunas recebidas: [" + colunas + "]. "
+            + "Esperado 'Conta', 'Nome Agência' e 'Gerente de Contas' (planilha base) ou 'conta', 'nm_agencia' e 'nm_carteira_responsavel' (CSV). "
+            + "Se as colunas estão vazias, rode a função atualizarBase no Apps Script para regenerar a planilha base.");
         }
 
         localStorage.setItem('agencias_base', JSON.stringify(Array.from(agenciasMap.entries())));
