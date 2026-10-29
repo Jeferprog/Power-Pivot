@@ -30,11 +30,13 @@
 
 var CONFIG = {
   // ID do arquivo da base no Google Drive — ou de uma PASTA: nesse caso o
-  // script usa o arquivo mais recente dentro dela (ex.: exportações do Qlik)
-  CSV_FILE_ID: '1XoQamjbYeu0xdIDpj-Y9X4ngqGrCE4Ku',
+  // script usa o arquivo mais recente dentro dela (ex.: exportações do Qlik).
+  // Link atual: https://drive.google.com/file/d/1LNBRDcP1xYoCQw69_TrKIFRkWG_Ycmt1/view
+  CSV_FILE_ID: '1LNBRDcP1xYoCQw69_TrKIFRkWG_Ycmt1',
   // Quando o ID acima é de uma pasta, considera apenas arquivos cujo nome
-  // contém este texto (deixe '' para considerar todos)
-  FILTRO_NOME: 'basecontascorrente.csv',
+  // contém este texto (deixe '' para considerar todos). Vazio pois agora o
+  // ID aponta direto para o arquivo.
+  FILTRO_NOME: '',
   // Codificação preferida do arquivo CSV ('UTF-8' ou 'ISO-8859-1')
   ENCODING: 'UTF-8',
   // ID da planilha base já criada (evita criar outra se a propriedade do
