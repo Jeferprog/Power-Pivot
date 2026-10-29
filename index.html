@@ -2168,14 +2168,21 @@
         // Normaliza as chaves para aceitar tanto o Excel antigo (Conta, Nome Agência,
         // Gerente de Contas) quanto o CSV da base (conta, nm_carteira_responsavel)
         const norm = {};
-        Object.keys(row).forEach(k => {
+        const chaves = Object.keys(row);
+        chaves.forEach(k => {
           norm[String(k).replace(/^\ufeff/, '').trim().toLowerCase()] = row[k];
         });
-        const conta = norm["conta"];
+        let conta = norm["conta"];
         const agencia = norm["nome agência"] || norm["nome agencia"] || norm["nm_agencia"]
           || norm["agência"] || norm["agencia"];
         const gerente = norm["gerente de contas"] || norm["gerente"] || norm["nm_carteira_responsavel"]
           || norm["m_carteira_responsavel"] || norm["carteira responsável"] || norm["carteira responsavel"];
+        // A planilha base pode chegar com o cabeçalho da 1ª coluna (Conta) em
+        // branco — quirk do export CSV do Google quando a coluna é numérica.
+        // Nesse caso, usa a primeira coluna da linha como Conta.
+        if (!conta && (agencia || gerente) && chaves.length) {
+          conta = row[chaves[0]];
+        }
         if (conta && (agencia || gerente)) {
           agenciasMap.set(normalizarConta(conta), {
             agencia: agencia || "NÃO INFORMADA",
