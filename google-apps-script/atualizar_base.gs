@@ -4,7 +4,8 @@
  *
  * Este script lê o arquivo da base no Google Drive (CSV separado por ";" ou
  * Planilha Google, cabeçalho: nome_completo; conta; cpf_cnpj; data_nascimento;
- * m_carteira_responsavel; nm_carteira; nm_agencia) e copia, UMA VEZ POR DIA,
+ * nm_carteira_responsavel; nm_carteira; nm_agencia; ds_conta_corrente_categoria)
+ * e copia, UMA VEZ POR DIA,
  * somente os campos que o dashboard precisa — Conta, Nome Agência e Gerente
  * de Contas — para uma planilha Google ("planilha base"). O dashboard lê essa
  * planilha base — assim os dados sensíveis (CPF/CNPJ, data de nascimento)
@@ -50,7 +51,7 @@ var CONFIG = {
   CAMPOS: [
     { origem: ['conta'], destino: 'Conta' },
     { origem: ['nm_agencia'], destino: 'Nome Agência' },
-    { origem: ['m_carteira_responsavel', 'nm_carteira_responsavel'], destino: 'Gerente de Contas' }
+    { origem: ['nm_carteira_responsavel', 'm_carteira_responsavel'], destino: 'Gerente de Contas' }
   ]
 };
 
