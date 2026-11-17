@@ -633,9 +633,10 @@
         </label>
         <p class="text-[10px] text-gray-400 italic mt-2">
           Selecione um ou mais arquivos. Aba: <strong>emprestimosLiberadosPeriodo</strong>.<br>
-          Colunas: <strong>Modalidade (B)</strong>, <strong>Data Liberada (C)</strong>, <strong>Alçada (E)</strong>,
-          <strong>Conta (F)</strong>, <strong>Nome (H)</strong>, <strong>Contrato (M)</strong>, <strong>Vencimento
-            (N)</strong>, <strong>Juros (P)</strong> e <strong>Valor Liberado (Z)</strong>.
+          Colunas identificadas pelo nome do cabeçalho (a posição pode variar conforme o período do relatório):
+          <strong>Modalidade</strong>, <strong>Data Liberada</strong>, <strong>Alçada</strong>,
+          <strong>Conta</strong>, <strong>Nome</strong>, <strong>Contrato</strong>, <strong>Venc. Final</strong>,
+          <strong>Juros A.M.</strong> e <strong>Valor Liberado</strong>.
         </p>
       </div>
     </div>
@@ -2168,21 +2169,14 @@
         // Normaliza as chaves para aceitar tanto o Excel antigo (Conta, Nome Agência,
         // Gerente de Contas) quanto o CSV da base (conta, nm_carteira_responsavel)
         const norm = {};
-        const chaves = Object.keys(row);
-        chaves.forEach(k => {
+        Object.keys(row).forEach(k => {
           norm[String(k).replace(/^\ufeff/, '').trim().toLowerCase()] = row[k];
         });
-        let conta = norm["conta"];
+        const conta = norm["conta"];
         const agencia = norm["nome agência"] || norm["nome agencia"] || norm["nm_agencia"]
           || norm["agência"] || norm["agencia"];
         const gerente = norm["gerente de contas"] || norm["gerente"] || norm["nm_carteira_responsavel"]
           || norm["m_carteira_responsavel"] || norm["carteira responsável"] || norm["carteira responsavel"];
-        // A planilha base pode chegar com o cabeçalho da 1ª coluna (Conta) em
-        // branco — quirk do export CSV do Google quando a coluna é numérica.
-        // Nesse caso, usa a primeira coluna da linha como Conta.
-        if (!conta && (agencia || gerente) && chaves.length) {
-          conta = row[chaves[0]];
-        }
         if (conta && (agencia || gerente)) {
           agenciasMap.set(normalizarConta(conta), {
             agencia: agencia || "NÃO INFORMADA",
@@ -3304,6 +3298,77 @@
       container.classList.remove('hidden');
     }
 
+    // Aliases de cabeçalho por campo (texto normalizado: minúsculo, sem acento).
+    // As colunas do relatório emprestimosLiberadosPeriodo mudam de posição conforme o
+    // período gerado (ex.: "Valor Liberado" ora na coluna X, ora na Y; a coluna fixa Z
+    // chegava a apontar para "Saldo do Empréstimo", gravando 0). Por isso as colunas são
+    // localizadas pelo RÓTULO, e não por posição fixa.
+    const PRODUCAO_ALIASES = {
+      'Data Liberada': ['data liberada'],
+      'Alçada': ['alcada'],
+      'Conta': ['conta'],
+      'Nome': ['nome'],
+      'Contrato/Parcelas': ['contrato/parcelas', 'contrato'],
+      'Venc. Final': ['venc. final', 'venc final', 'vencimento'],
+      'Juros A.M. (%)': ['juros a.m'], // não casa "Juros A.A.(%)"
+      'Valor Liberado': ['valor liberado'] // não casa "Saldo do Empréstimo"
+    };
+    // Índices fixos de fallback (formato antigo), usados quando o rótulo não é encontrado.
+    const PRODUCAO_FALLBACK_COL = {
+      'Data Liberada': 2, 'Alçada': 4, 'Conta': 5, 'Nome': 7,
+      'Contrato/Parcelas': 12, 'Venc. Final': 13, 'Juros A.M. (%)': 15, 'Valor Liberado': 25
+    };
+
+    function normalizarCabecalho(s) {
+      return String(s == null ? '' : s).toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove acentos
+        .replace(/\s+/g, ' ').trim();
+    }
+
+    /**
+     * Mapeia cada campo para uma FAIXA de colunas [start..end] a partir da linha de
+     * cabeçalho: da coluna do rótulo até a coluna do próximo cabeçalho - 1. Ler a faixa
+     * (primeira célula não-vazia) resolve tanto o deslocamento de colunas entre relatórios
+     * quanto as células mescladas. Sem rótulo encontrado, usa o índice fixo antigo.
+     */
+    function resolverColunasProducao(headerRow) {
+      const celulas = [];
+      (headerRow || []).forEach((c, i) => {
+        const t = normalizarCabecalho(c);
+        if (t !== '') celulas.push({ col: i, texto: t });
+      });
+      celulas.sort((a, b) => a.col - b.col);
+
+      const map = {};
+      Object.keys(PRODUCAO_ALIASES).forEach(campo => {
+        const aliases = PRODUCAO_ALIASES[campo];
+        let idx = -1;
+        for (let k = 0; k < celulas.length; k++) {
+          if (aliases.some(a => celulas[k].texto.includes(a))) { idx = k; break; }
+        }
+        if (idx === -1) {
+          const fixo = PRODUCAO_FALLBACK_COL[campo];
+          map[campo] = { start: fixo, end: fixo };
+        } else {
+          const start = celulas[idx].col;
+          const end = idx + 1 < celulas.length ? celulas[idx + 1].col - 1 : start + 4;
+          map[campo] = { start: start, end: end };
+        }
+      });
+      return map;
+    }
+
+    /** Lê o valor de um campo na faixa mapeada: primeira célula não-vazia da faixa. */
+    function lerCampoProducao(row, campo, colMap) {
+      const faixa = colMap[campo];
+      if (!faixa || !row) return null;
+      for (let c = faixa.start; c <= faixa.end; c++) {
+        const v = row[c];
+        if (v !== null && v !== undefined && String(v).trim() !== '') return v;
+      }
+      return null;
+    }
+
     async function parseExcelFile(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -3319,8 +3384,14 @@
 
             for (let i = 1; i < rows.length; i++) { if (!rows[i][1]) rows[i][1] = rows[i - 1][1]; }
 
-            let headerRowIndex = rows.findIndex(r => r[2] && String(r[2]).toLowerCase().includes("data liberada"));
+            let headerRowIndex = rows.findIndex(r => Array.isArray(r) && r[2] && String(r[2]).toLowerCase().includes("data liberada"));
+            if (headerRowIndex === -1) headerRowIndex = rows.findIndex(r => Array.isArray(r) && r.some(c => c && String(c).toLowerCase().includes("data liberada")));
             if (headerRowIndex === -1) headerRowIndex = 19;
+
+            // Mapear colunas pelo TEXTO do cabeçalho (a posição varia entre relatórios de
+            // períodos diferentes). Fallback para índice fixo por campo.
+            const colMap = resolverColunasProducao(rows[headerRowIndex] || []);
+
             rows = rows.slice(headerRowIndex);
 
             rows = rows.filter(r => {
@@ -3333,16 +3404,21 @@
                 r[2] !== "";
             });
 
-            const columnMap = [1, 2, 4, 5, 7, 12, 13, 15, 25];
-            rows = rows.map(r => columnMap.map(i => r[i] ?? null));
-            const headers = ["Modalidade", "Data Liberada", "Alçada", "Conta", "Nome", "Contrato/Parcelas", "Venc. Final", "Juros A.M. (%)", "Valor Liberado"];
-            rows = rows.slice(1);
+            rows = rows.slice(1); // remove a própria linha de cabeçalho
 
-            let dataRows = rows.map(r => {
-              const obj = {};
-              headers.forEach((h, i) => { obj[h] = r[i]; });
-              return obj;
-            });
+            // Modalidade vem do rótulo "Modalidade: XXXX" na coluna B (propagado acima);
+            // os demais campos são lidos pela faixa de colunas resolvida em colMap.
+            let dataRows = rows.map(r => ({
+              "Modalidade": r[1] ?? null,
+              "Data Liberada": lerCampoProducao(r, 'Data Liberada', colMap),
+              "Alçada": lerCampoProducao(r, 'Alçada', colMap),
+              "Conta": lerCampoProducao(r, 'Conta', colMap),
+              "Nome": lerCampoProducao(r, 'Nome', colMap),
+              "Contrato/Parcelas": lerCampoProducao(r, 'Contrato/Parcelas', colMap),
+              "Venc. Final": lerCampoProducao(r, 'Venc. Final', colMap),
+              "Juros A.M. (%)": lerCampoProducao(r, 'Juros A.M. (%)', colMap),
+              "Valor Liberado": lerCampoProducao(r, 'Valor Liberado', colMap)
+            }));
 
             resolve(convertTypes(dataRows));
           } catch (e) { reject(e.message); }
