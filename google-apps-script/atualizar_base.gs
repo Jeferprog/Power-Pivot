@@ -32,6 +32,8 @@ var CONFIG = {
   // ID do arquivo da base no Google Drive — ou de uma PASTA: nesse caso o
   // script usa o arquivo mais recente dentro dela (ex.: exportações do Qlik).
   // Link atual: https://drive.google.com/file/d/1LNBRDcP1xYoCQw69_TrKIFRkWG_Ycmt1/view
+  //https://drive.google.com/file/d/1LNBRDcP1xYoCQw69_TrKIFRkWG_Ycmt1/view?usp=drive_link
+  
   CSV_FILE_ID: '1LNBRDcP1xYoCQw69_TrKIFRkWG_Ycmt1',
   // Quando o ID acima é de uma pasta, considera apenas arquivos cujo nome
   // contém este texto (deixe '' para considerar todos). Vazio pois agora o
