@@ -1,0 +1,28 @@
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('Gestão de Liberações de Crédito - Cresol Cooperar')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Função opcional caso você queira salvar os dados em uma planilha do Google futuramente
+ */
+function processDataFromJS(data) {
+  // Exemplo: console.log(data);
+  return "Dados recebidos com sucesso no servidor!";
+}
+
+/**
+ * Força a releitura do arquivo CSV no Google Drive (executa atualizarBase) e
+ * devolve a base recém-gerada. É o que o botão "Sincronizar Agora" chama para
+ * refletir IMEDIATAMENTE qualquer alteração no basecontascorrente.csv — ao
+ * contrário de getBaseAgencias(), que só lê a planilha base já existente.
+ *
+ * Depende de atualizarBase(), obterPlanilhaBase() e CONFIG, definidos em
+ * Atualizar_base.gs (mesmo projeto Apps Script).
+ */
+function forcarAtualizacaoBase() {
+  atualizarBase();
+  var aba = obterPlanilhaBase().getSheetByName(CONFIG.NOME_ABA);
+  return aba.getDataRange().getDisplayValues();
+}

@@ -1,0 +1,28 @@
+function getGerentesExcecao() {
+  return [
+    "Alex Joel Hillesheim",
+    "Andresa Pompeu Bloedow",
+    "Bruno Festinalli",
+    "Christian Erno Dornelles Renz",
+    "Cristiano Jose Muller",
+    "Daiane Cristina Dos Santos",
+    "Eunice Rita Hintz",
+    "Fabiana Vieira De Barcelos",
+    "Gabriel Schuster",
+    "Geovane Jose Schaefer",
+    "Jefferson Cortolet Schaefer",
+    "Luis Antonio Boehm",
+    "Marciane Silveira Da Rosa Bastos",
+    "Mariele Carine Hahn Cols",
+    "Paula Raquel Junges",
+    "Renan Cargnelutti",
+    "Vitor Samuel Caeppel",
+    "Viviane Andreia Luft",
+    "Gabriela Lippert Vettorello",
+    "Deise Gregory Ludwig",
+    "Daiane Denise de Souza",
+    "Sem Responsável",
+    "Não Informado",
+    "Marciane Silveira Da Rosa",
+  ];
+}
