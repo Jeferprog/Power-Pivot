@@ -2294,17 +2294,20 @@
     }
 
     // Quando o dashboard roda como web app do Apps Script, busca a base direto
-    // do servidor (função getBaseAgencias do projeto) — sem link público.
-    function buscarBaseViaAppsScript() {
+    // do servidor — sem link público. Com forcar=true, chama
+    // forcarAtualizacaoBase(), que RELÊ o CSV no Drive (atualizarBase) antes de
+    // devolver os dados; sem forcar, apenas lê a planilha base já existente.
+    function buscarBaseViaAppsScript(forcar) {
       return new Promise(function (resolve, reject) {
         if (typeof google === 'undefined' || !google.script || !google.script.run) {
           reject(new Error('Fora do Apps Script'));
           return;
         }
-        google.script.run
+        var runner = google.script.run
           .withSuccessHandler(resolve)
-          .withFailureHandler(reject)
-          .getBaseAgencias();
+          .withFailureHandler(reject);
+        if (forcar) runner.forcarAtualizacaoBase();
+        else runner.getBaseAgencias();
       });
     }
 
@@ -2321,18 +2324,25 @@
     async function syncAgenciasFromGoogle(silent) {
       if (!silent) {
         loading.style.display = 'flex';
-        loadingText.innerText = "Sincronizando base com o Google Drive...";
+        loadingText.innerText = "Relendo o CSV e regenerando a base...";
       }
 
       try {
         let rows = null;
 
         // 1ª tentativa: servidor do Apps Script (não precisa de link nem
-        // compartilhamento público — requer atualizar_base.gs no mesmo projeto)
+        // compartilhamento público — requer atualizar_base.gs no mesmo projeto).
+        // No clique manual (silent=false) força a releitura do CSV no Drive;
+        // no auto-sync (silent=true) só lê a planilha base já gerada (rápido).
         try {
-          rows = matrizParaObjetos(await buscarBaseViaAppsScript());
+          rows = matrizParaObjetos(await buscarBaseViaAppsScript(!silent));
           if (rows) console.log("✓ Base obtida via Apps Script (servidor)");
         } catch (e) {
+          // Se estamos no web app e o servidor falhou (ex.: coluna não
+          // encontrada no CSV), mostra o erro real em vez de cair para a base
+          // antiga da planilha pública — senão a falha ficaria mascarada.
+          const temServidor = typeof google !== 'undefined' && google.script && google.script.run;
+          if (!silent && temServidor) throw e;
           rows = null;
         }
 
